@@ -8,6 +8,11 @@ enum SFX: CaseIterable {
     case boing    // pulo / bola
     case splash   // água e bolhas
     case chime    // recompensa / estrela
+    case bark     // latido (cachorro)
+    case meow     // miau (gato)
+    case squeak   // guincho (hamster)
+    case chirp    // piar (papagaio)
+    case sparkle  // brilho mágico (unicórnio)
 }
 
 /// Gera e toca a musiquinha de fundo (estilo caixinha de música) e os efeitos,
@@ -104,6 +109,24 @@ final class AudioManager: ObservableObject {
         node.play()
     }
 
+    /// Toca o som de voz característico da espécie
+    func playVoice(for species: PetSpecies) {
+        switch species {
+        case .dog:
+            play(.bark)
+        case .cat:
+            play(.meow)
+        case .rabbit:
+            play(.boing)
+        case .hamster:
+            play(.squeak)
+        case .parrot:
+            play(.chirp)
+        case .unicorn:
+            play(.sparkle)
+        }
+    }
+
     // MARK: - Síntese da música
 
     /// Melodia original pentatônica, tocada com timbre de caixinha de música,
@@ -176,18 +199,23 @@ final class AudioManager: ObservableObject {
         case .boing: dur = 0.30
         case .splash: dur = 0.35
         case .chime: dur = 0.8
+        case .bark: dur = 0.15
+        case .meow: dur = 0.35
+        case .squeak: dur = 0.08
+        case .chirp: dur = 0.12
+        case .sparkle: dur = 0.40
         }
         let frameCount = Int(dur * sampleRate)
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(frameCount)) else { return nil }
         buffer.frameLength = AVAudioFrameCount(frameCount)
         guard let data = buffer.floatChannelData?[0] else { return nil }
-
+ 
         var noiseState: UInt32 = 12345
         func noise() -> Double {
             noiseState = noiseState &* 1664525 &+ 1013904223
             return Double(noiseState % 20000) / 10000.0 - 1.0
         }
-
+ 
         var lowpass = 0.0
         for i in 0..<frameCount {
             let time = Double(i) / sampleRate
@@ -212,6 +240,30 @@ final class AudioManager: ObservableObject {
                 if time > 0.16 {
                     let second = time - 0.16
                     s += sin(2 * Double.pi * 1568.0 * second) * exp(-second / 0.3) * 0.6
+                }
+            case .bark:
+                let f = 280.0 - 150.0 * progress
+                s = sin(2 * Double.pi * f * time) * exp(-time / 0.08)
+                s += 0.35 * noise() * exp(-time / 0.05)
+            case .meow:
+                let f = 380.0 + 120.0 * sin(progress * Double.pi)
+                s = sin(2 * Double.pi * f * time) * exp(-time / 0.22)
+                s += 0.25 * sin(2 * Double.pi * f * 2 * time) * exp(-time / 0.14)
+            case .squeak:
+                let f = 1100.0 + 900.0 * progress
+                s = sin(2 * Double.pi * f * time) * exp(-time / 0.045)
+            case .chirp:
+                let f = 900.0 + 1300.0 * sin(progress * Double.pi)
+                s = sin(2 * Double.pi * f * time) * exp(-time / 0.08)
+            case .sparkle:
+                s = sin(2 * Double.pi * 987.77 * time) * exp(-time / 0.15) * 0.5
+                if time > 0.08 {
+                    let second = time - 0.08
+                    s += sin(2 * Double.pi * 1318.51 * second) * exp(-second / 0.15) * 0.5
+                }
+                if time > 0.16 {
+                    let third = time - 0.16
+                    s += sin(2 * Double.pi * 1568.0 * third) * exp(-third / 0.2) * 0.5
                 }
             }
             data[i] = Float(max(-0.9, min(0.9, s * 0.8)))

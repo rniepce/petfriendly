@@ -5,6 +5,7 @@ enum Activity: Identifiable {
     case bath
     case play
     case sleep
+    case wardrobe
 
     var id: Self { self }
 }
@@ -79,7 +80,7 @@ struct HomeView: View {
                     .position(x: petPos.x, y: petPos.y - 118)
             }
 
-            PetCharacterView(species: pet.species, pose: pose, facing: facing, size: 170)
+            PetCharacterView(species: pet.species, pose: pose, facing: facing, size: 170, accessory: pet.equippedAccessory)
                 .offset(y: jumpOffset)
                 .position(petPos)
                 .onTapGesture { jump() }
@@ -120,7 +121,11 @@ struct HomeView: View {
     private func jump() {
         guard !isStroking else { return }
         Haptics.tap()
-        AudioManager.shared.play(.boing)
+        if let pet = vm.pet {
+            AudioManager.shared.playVoice(for: pet.species)
+        } else {
+            AudioManager.shared.play(.boing)
+        }
         pose = .happy
         particles.burst(["💖", "✨"], at: CGPoint(x: petPos.x, y: petPos.y - 60), count: 5)
         withAnimation(.easeOut(duration: 0.25)) { jumpOffset = -44 }
@@ -180,11 +185,59 @@ struct HomeView: View {
                 .padding(.vertical, 5)
                 .background(Capsule().fill(.white.opacity(0.75)))
 
+                // Controles de clima e tempo
+                HStack(spacing: 8) {
+                    // Botão Dia/Noite
+                    Button {
+                        Haptics.tap()
+                        AudioManager.shared.play(.pop)
+                        var p = pet
+                        p.timeOfDay = p.timeOfDay == .day ? .night : .day
+                        vm.pet = p
+                        vm.save()
+                    } label: {
+                        Text(pet.timeOfDay == .day ? "☀️" : "🌙")
+                            .font(.system(size: 16))
+                            .frame(width: 32, height: 32)
+                            .background(Circle().fill(.white.opacity(0.85)))
+                    }
+                    .buttonStyle(SquishyButtonStyle())
+
+                    // Botão Clima
+                    Button {
+                        Haptics.tap()
+                        AudioManager.shared.play(.pop)
+                        var p = pet
+                        p.weather = p.weather == .sunny ? .rainy : .sunny
+                        vm.pet = p
+                        vm.save()
+                    } label: {
+                        Text(pet.weather == .sunny ? "🌈" : "🌧️")
+                            .font(.system(size: 16))
+                            .frame(width: 32, height: 32)
+                            .background(Circle().fill(.white.opacity(0.85)))
+                    }
+                    .buttonStyle(SquishyButtonStyle())
+                }
+                .padding(4)
+                .background(Capsule().fill(.white.opacity(0.45)))
+
                 Button {
                     Haptics.tap()
                     audio.musicOn.toggle()
                 } label: {
                     Text(audio.musicOn ? "🎵" : "🔕")
+                        .font(.system(size: 18))
+                        .padding(7)
+                        .background(Circle().fill(.white.opacity(0.75)))
+                }
+                .buttonStyle(SquishyButtonStyle())
+
+                Button {
+                    Haptics.tap()
+                    open(.wardrobe)
+                } label: {
+                    Text("👑")
                         .font(.system(size: 18))
                         .padding(7)
                         .background(Circle().fill(.white.opacity(0.75)))
@@ -238,6 +291,8 @@ struct HomeView: View {
             PlayView(onClose: closeActivity)
         case .sleep:
             SleepView(onClose: closeActivity)
+        case .wardrobe:
+            WardrobeView(onClose: closeActivity)
         case nil:
             EmptyView()
         }
@@ -260,11 +315,18 @@ struct HomeView: View {
 // MARK: - Quarto da casa
 
 struct RoomBackground: View {
+    @EnvironmentObject var vm: GameViewModel
+
     var body: some View {
         GeometryReader { geo in
+            let isNight = vm.pet?.timeOfDay == .night
+            let isRainy = vm.pet?.weather == .rainy
+
             ZStack {
                 LinearGradient(
-                    colors: [Color(red: 1.0, green: 0.93, blue: 0.82), Color(red: 1.0, green: 0.85, blue: 0.72)],
+                    colors: isNight ?
+                        [Color(red: 0.16, green: 0.14, blue: 0.28), Color(red: 0.28, green: 0.20, blue: 0.36)] :
+                        [Color(red: 1.0, green: 0.93, blue: 0.82), Color(red: 1.0, green: 0.85, blue: 0.72)],
                     startPoint: .top,
                     endPoint: .bottom
                 )
@@ -276,7 +338,9 @@ struct RoomBackground: View {
                         Rectangle()
                             .fill(
                                 LinearGradient(
-                                    colors: [Color(red: 0.85, green: 0.65, blue: 0.45), Color(red: 0.75, green: 0.55, blue: 0.38)],
+                                    colors: isNight ?
+                                        [Color(red: 0.48, green: 0.32, blue: 0.20), Color(red: 0.32, green: 0.20, blue: 0.12)] :
+                                        [Color(red: 0.85, green: 0.65, blue: 0.45), Color(red: 0.75, green: 0.55, blue: 0.38)],
                                     startPoint: .top,
                                     endPoint: .bottom
                                 )
@@ -285,7 +349,7 @@ struct RoomBackground: View {
                         VStack(spacing: 24) {
                             ForEach(0..<4) { _ in
                                 Divider()
-                                    .background(Color(red: 0.60, green: 0.42, blue: 0.28).opacity(0.35))
+                                    .background(Color(red: 0.60, green: 0.42, blue: 0.28).opacity(isNight ? 0.22 : 0.35))
                             }
                         }
                         .padding(.vertical, 12)
@@ -299,23 +363,64 @@ struct RoomBackground: View {
                     RoundedRectangle(cornerRadius: 18)
                         .fill(
                             LinearGradient(
-                                colors: [Color(red: 0.55, green: 0.80, blue: 1.0), Color(red: 0.82, green: 0.94, blue: 1.0)],
+                                colors: isNight ?
+                                    [Color(red: 0.06, green: 0.06, blue: 0.18), Color(red: 0.12, green: 0.12, blue: 0.28)] :
+                                    (isRainy ?
+                                        [Color(red: 0.48, green: 0.52, blue: 0.62), Color(red: 0.65, green: 0.68, blue: 0.74)] :
+                                        [Color(red: 0.55, green: 0.80, blue: 1.0), Color(red: 0.82, green: 0.94, blue: 1.0)]),
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
                         )
                         .frame(width: 140, height: 110)
                         .overlay(
-                            // Nuvem pequena flutuando na janela
-                            VectorCloud(scale: 0.45, opacity: 0.8)
-                                .offset(x: 10, y: -5)
-                        )
-                        .overlay(
-                            // Sol pequeno
-                            Circle()
-                                .fill(RadialGradient(colors: [Color(red: 1.0, green: 0.88, blue: 0.45), Color(red: 1.0, green: 0.60, blue: 0.20)], center: .center, startRadius: 0, endRadius: 22))
-                                .frame(width: 28, height: 28)
-                                .position(x: 35, y: 30)
+                            ZStack {
+                                if isNight {
+                                    // Lua crescente amarela brilhante
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color(red: 1.0, green: 0.92, blue: 0.55))
+                                            .frame(width: 24, height: 24)
+                                        Circle()
+                                            .fill(Color(red: 0.06, green: 0.06, blue: 0.18))
+                                            .frame(width: 24, height: 24)
+                                            .offset(x: -8, y: -2)
+                                    }
+                                    .position(x: 35, y: 30)
+
+                                    VectorStar(size: 8, delay: 0)
+                                        .position(x: 105, y: 30)
+                                    VectorStar(size: 6, delay: 1.0)
+                                        .position(x: 80, y: 55)
+                                } else {
+                                    // Sol pequeno
+                                    Circle()
+                                        .fill(RadialGradient(colors: [Color(red: 1.0, green: 0.88, blue: 0.45), Color(red: 1.0, green: 0.60, blue: 0.20)], center: .center, startRadius: 0, endRadius: 22))
+                                        .frame(width: 28, height: 28)
+                                        .position(x: 35, y: 30)
+
+                                    VectorCloud(scale: 0.45, opacity: isRainy ? 0.55 : 0.8)
+                                        .offset(x: 10, y: -5)
+                                }
+
+                                if isRainy {
+                                    // Gotas caindo fora da janela
+                                    TimelineView(.animation) { context in
+                                        let t = context.date.timeIntervalSinceReferenceDate
+                                        GeometryReader { windowGeo in
+                                            ForEach(0..<4) { index in
+                                                let yOffset = CGFloat((t * 85 + Double(index) * 32).truncatingRemainder(dividingBy: 110)) - 10
+                                                let xPos = CGFloat(20 + index * 30)
+                                                Capsule()
+                                                    .fill(Color(red: 0.55, green: 0.78, blue: 0.95).opacity(0.45))
+                                                    .frame(width: 2, height: 14)
+                                                    .position(x: xPos, y: yOffset)
+                                            }
+                                        }
+                                    }
+                                    .allowsHitTesting(false)
+                                }
+                            }
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 18))
                     

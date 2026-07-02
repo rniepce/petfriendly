@@ -81,6 +81,25 @@ final class GameViewModel: ObservableObject {
         save()
     }
 
+    func buyAccessory(_ acc: String, price: Int) {
+        guard var p = pet else { return }
+        guard p.coins >= price else { return }
+        p.coins -= price
+        p.purchasedAccessories.append(acc)
+        p.equippedAccessory = acc
+        pet = p
+        save()
+        Haptics.success()
+        AudioManager.shared.play(.chime)
+    }
+
+    func equipAccessory(_ acc: String?) {
+        guard var p = pet else { return }
+        p.equippedAccessory = acc
+        pet = p
+        save()
+    }
+
     /// Aumenta um medidor; ganha uma estrela quando ele fica cheio.
     private func boost(_ keyPath: WritableKeyPath<Pet, Double>, by amount: Double) {
         guard var p = pet else { return }

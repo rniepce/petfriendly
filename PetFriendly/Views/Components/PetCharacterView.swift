@@ -104,6 +104,7 @@ struct PetCharacterView: View {
     var pose: PetPose = .idle
     var facing: CGFloat = 1   // 1 = olhando para a direita, -1 = esquerda
     var size: CGFloat = 150
+    var accessory: String? = nil
 
     var body: some View {
         TimelineView(.animation) { context in
@@ -112,9 +113,9 @@ struct PetCharacterView: View {
 
             Group {
                 if species == .parrot {
-                    BirdFigure(motion: m, size: size)
+                    BirdFigure(motion: m, size: size, accessory: accessory)
                 } else {
-                    QuadrupedFigure(species: species, motion: m, size: size)
+                    QuadrupedFigure(species: species, motion: m, size: size, accessory: accessory)
                 }
             }
             .rotationEffect(.degrees(Double(m.lean)))
@@ -156,6 +157,7 @@ private struct QuadrupedFigure: View {
     let species: PetSpecies
     let motion: PetMotion
     let size: CGFloat
+    let accessory: String?
 
     private var m: PetMotion { motion }
     private var S: CGFloat { size }
@@ -361,6 +363,10 @@ private struct QuadrupedFigure: View {
             }
 
             face
+            
+            if let acc = accessory {
+                accessoryView(acc)
+            }
         }
         .frame(width: S, height: S)
         .rotationEffect(.degrees(Double(m.headPitch + m.headSway)), anchor: UnitPoint(x: 0.52, y: 0.55))
@@ -630,6 +636,90 @@ private struct QuadrupedFigure: View {
             .rotationEffect(.degrees(rot))
             .position(x: S * x, y: S * (0.43 + dy))
     }
+
+    @ViewBuilder
+    private func accessoryView(_ acc: String) -> some View {
+        switch acc {
+        case "🎩":
+            ZStack(alignment: .bottom) {
+                // Aba da cartola
+                Ellipse()
+                    .fill(Color(red: 0.15, green: 0.15, blue: 0.18))
+                    .frame(width: S * 0.22, height: S * 0.04)
+                // Corpo da cartola
+                UnevenRoundedRectangle(topLeadingRadius: 4, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 4)
+                    .fill(Color(red: 0.15, green: 0.15, blue: 0.18))
+                    .frame(width: S * 0.14, height: S * 0.15)
+                    .offset(y: -S * 0.02)
+                // Faixa vermelha
+                Rectangle()
+                    .fill(Color(red: 0.9, green: 0.25, blue: 0.25))
+                    .frame(width: S * 0.14, height: S * 0.03)
+                    .offset(y: -S * 0.02)
+            }
+            .position(x: S * 0.63, y: S * 0.12)
+        case "🕶️":
+            HStack(spacing: S * 0.02) {
+                Circle().fill(Color(red: 0.1, green: 0.1, blue: 0.1)).frame(width: S * 0.08, height: S * 0.08)
+                Circle().fill(Color(red: 0.1, green: 0.1, blue: 0.1)).frame(width: S * 0.08, height: S * 0.08)
+            }
+            .overlay(
+                Rectangle().fill(Color(red: 0.1, green: 0.1, blue: 0.1)).frame(width: S * 0.16, height: S * 0.02),
+                alignment: .top
+            )
+            .position(x: S * 0.68, y: S * 0.345)
+        case "🎀":
+            ZStack {
+                // Asas do laço
+                HStack(spacing: -S * 0.01) {
+                    TriangleShape()
+                        .fill(Color(red: 1.0, green: 0.55, blue: 0.7))
+                        .frame(width: S * 0.07, height: S * 0.07)
+                        .rotationEffect(.degrees(90))
+                    TriangleShape()
+                        .fill(Color(red: 1.0, green: 0.55, blue: 0.7))
+                        .frame(width: S * 0.07, height: S * 0.07)
+                        .rotationEffect(.degrees(-90))
+                }
+                // Centro do laço
+                Circle()
+                    .fill(Color(red: 0.95, green: 0.35, blue: 0.55))
+                    .frame(width: S * 0.03)
+            }
+            .position(x: S * 0.52, y: S * 0.23)
+        case "👑":
+            ZStack(alignment: .bottom) {
+                Path { path in
+                    path.move(to: CGPoint(x: 0, y: 30))
+                    path.addLine(to: CGPoint(x: 0, y: 10))
+                    path.addLine(to: CGPoint(x: 10, y: 22))
+                    path.addLine(to: CGPoint(x: 20, y: 5))
+                    path.addLine(to: CGPoint(x: 30, y: 22))
+                    path.addLine(to: CGPoint(x: 40, y: 10))
+                    path.addLine(to: CGPoint(x: 40, y: 30))
+                    path.closeSubpath()
+                }
+                .fill(
+                    LinearGradient(
+                        colors: [Color(red: 1.0, green: 0.85, blue: 0.25), Color(red: 0.95, green: 0.70, blue: 0.15)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(width: S * 0.16, height: S * 0.11)
+                
+                HStack(spacing: S * 0.03) {
+                    Circle().fill(Color.red).frame(width: S * 0.015)
+                    Circle().fill(Color.blue).frame(width: S * 0.015)
+                    Circle().fill(Color.green).frame(width: S * 0.015)
+                }
+                .offset(y: -S * 0.015)
+            }
+            .position(x: S * 0.63, y: S * 0.14)
+        default:
+            EmptyView()
+        }
+    }
 }
 
 // MARK: - Papagaio
@@ -637,6 +727,7 @@ private struct QuadrupedFigure: View {
 private struct BirdFigure: View {
     let motion: PetMotion
     let size: CGFloat
+    let accessory: String?
 
     private var m: PetMotion { motion }
     private var S: CGFloat { size }
@@ -775,9 +866,92 @@ private struct BirdFigure: View {
                 .fill(Color(red: 1.0, green: 0.6, blue: 0.7).opacity(0.5))
                 .frame(width: S * 0.05)
                 .position(x: S * 0.60, y: S * 0.35)
+            
+            if let acc = accessory {
+                accessoryView(acc)
+            }
         }
         .frame(width: S, height: S)
         .rotationEffect(.degrees(Double(m.headPitch + m.headSway)), anchor: UnitPoint(x: 0.52, y: 0.42))
+    }
+
+    @ViewBuilder
+    private func accessoryView(_ acc: String) -> some View {
+        switch acc {
+        case "🎩":
+            ZStack(alignment: .bottom) {
+                Ellipse()
+                    .fill(Color(red: 0.15, green: 0.15, blue: 0.18))
+                    .frame(width: S * 0.18, height: S * 0.035)
+                UnevenRoundedRectangle(topLeadingRadius: 4, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 4)
+                    .fill(Color(red: 0.15, green: 0.15, blue: 0.18))
+                    .frame(width: S * 0.11, height: S * 0.12)
+                    .offset(y: -S * 0.015)
+                Rectangle()
+                    .fill(Color(red: 0.9, green: 0.25, blue: 0.25))
+                    .frame(width: S * 0.11, height: S * 0.025)
+                    .offset(y: -S * 0.015)
+            }
+            .position(x: S * 0.58, y: S * 0.05)
+        case "🕶️":
+            HStack(spacing: S * 0.015) {
+                Circle().fill(Color(red: 0.1, green: 0.1, blue: 0.1)).frame(width: S * 0.065, height: S * 0.065)
+                Circle().fill(Color(red: 0.1, green: 0.1, blue: 0.1)).frame(width: S * 0.065, height: S * 0.065)
+            }
+            .overlay(
+                Rectangle().fill(Color(red: 0.1, green: 0.1, blue: 0.1)).frame(width: S * 0.13, height: S * 0.015),
+                alignment: .top
+            )
+            .position(x: S * 0.65, y: S * 0.27)
+        case "🎀":
+            ZStack {
+                HStack(spacing: -S * 0.01) {
+                    TriangleShape()
+                        .fill(Color(red: 1.0, green: 0.55, blue: 0.7))
+                        .frame(width: S * 0.06, height: S * 0.06)
+                        .rotationEffect(.degrees(90))
+                    TriangleShape()
+                        .fill(Color(red: 1.0, green: 0.55, blue: 0.7))
+                        .frame(width: S * 0.06, height: S * 0.06)
+                        .rotationEffect(.degrees(-90))
+                }
+                Circle()
+                    .fill(Color(red: 0.95, green: 0.35, blue: 0.55))
+                    .frame(width: S * 0.025)
+            }
+            .position(x: S * 0.46, y: S * 0.18)
+        case "👑":
+            ZStack(alignment: .bottom) {
+                Path { path in
+                    path.move(to: CGPoint(x: 0, y: 25))
+                    path.addLine(to: CGPoint(x: 0, y: 8))
+                    path.addLine(to: CGPoint(x: 8, y: 18))
+                    path.addLine(to: CGPoint(x: 16, y: 4))
+                    path.addLine(to: CGPoint(x: 24, y: 18))
+                    path.addLine(to: CGPoint(x: 32, y: 8))
+                    path.addLine(to: CGPoint(x: 32, y: 25))
+                    path.closeSubpath()
+                }
+                .fill(
+                    LinearGradient(
+                        colors: [Color(red: 1.0, green: 0.85, blue: 0.25), Color(red: 0.95, green: 0.70, blue: 0.15)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(width: S * 0.13, height: S * 0.09)
+                
+                HStack(spacing: S * 0.02) {
+                    Circle().fill(Color.red).frame(width: S * 0.012)
+                    Circle().fill(Color.blue).frame(width: S * 0.012)
+                    Circle().fill(Color.green).frame(width: S * 0.012)
+                }
+                .offset(y: -S * 0.008)
+            }
+            .position(x: S * 0.58, y: S * 0.07)
+        default:
+            EmptyView()
+        }
     }
 }
 

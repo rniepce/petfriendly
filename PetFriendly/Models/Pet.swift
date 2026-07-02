@@ -132,6 +132,16 @@ enum Mood {
     case sad
 }
 
+enum TimeOfDay: String, Codable, CaseIterable {
+    case day
+    case night
+}
+
+enum Weather: String, Codable, CaseIterable {
+    case sunny
+    case rainy
+}
+
 /// O bichinho adotado e seus medidores (0 = precisando de cuidado, 1 = ótimo).
 struct Pet: Codable {
     var name: String
@@ -141,6 +151,15 @@ struct Pet: Codable {
     var fun: Double = 0.7
     var energy: Double = 0.8
     var stars: Int = 0
+    
+    // Clima e Hora do Dia
+    var timeOfDay: TimeOfDay = .day
+    var weather: Weather = .sunny
+    
+    // Moedas e Customização
+    var coins: Int = 100
+    var purchasedAccessories: [String] = []
+    var equippedAccessory: String? = nil
 }
 
 extension Pet {
