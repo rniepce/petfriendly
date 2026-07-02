@@ -20,6 +20,9 @@ struct ContentView: View {
         .environmentObject(vm)
         .statusBarHidden(true)
         .persistentSystemOverlays(.hidden)
+        .onAppear {
+            AudioManager.shared.start()
+        }
     }
 }
 

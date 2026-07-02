@@ -30,6 +30,7 @@ struct PetShopView: View {
                         ForEach(PetSpecies.allCases) { species in
                             PetCard(species: species, isSelected: selected == species) {
                                 Haptics.tap()
+                                AudioManager.shared.play(.boing)
                                 withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
                                     selected = species
                                     name = species.suggestedNames.first ?? ""
@@ -84,6 +85,7 @@ struct PetShopView: View {
                 ForEach(species.suggestedNames, id: \.self) { suggestion in
                     Button {
                         Haptics.tap()
+                        AudioManager.shared.play(.pop)
                         name = suggestion
                     } label: {
                         Text(suggestion)
@@ -110,6 +112,7 @@ struct PetShopView: View {
             BigPillButton(title: "Levar \(trimmedName.isEmpty ? species.displayName : trimmedName) para casa! 🏡") {
                 guard !trimmedName.isEmpty else { return }
                 Haptics.success()
+                AudioManager.shared.play(.chime)
                 vm.adopt(species: species, name: trimmedName)
             }
             .opacity(trimmedName.isEmpty ? 0.5 : 1)
@@ -133,13 +136,14 @@ private struct PetCard: View {
 
     var body: some View {
         Button(action: onTap) {
-            VStack(spacing: 6) {
+            VStack(spacing: 4) {
                 ZStack {
                     Circle()
                         .fill(LinearGradient(colors: species.themeColors, startPoint: .topLeading, endPoint: .bottomTrailing))
-                        .frame(width: 82, height: 82)
-                    Text(species.emoji)
-                        .font(.system(size: 50))
+                        .frame(width: 92, height: 92)
+                    // o bichinho vivo, esperando ser adotado!
+                    PetCharacterView(species: species, pose: isSelected ? .happy : .idle, size: 84)
+                        .offset(y: -2)
                 }
                 Text(species.displayName)
                     .font(.system(size: 15, weight: .bold, design: .rounded))

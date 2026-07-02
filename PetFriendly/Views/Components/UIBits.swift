@@ -33,6 +33,7 @@ struct BigPillButton: View {
     var body: some View {
         Button {
             Haptics.tap()
+            AudioManager.shared.play(.pop)
             action()
         } label: {
             Text(title)
@@ -62,6 +63,7 @@ struct BigRoundButton: View {
     var body: some View {
         Button {
             Haptics.tap()
+            AudioManager.shared.play(.pop)
             action()
         } label: {
             VStack(spacing: 4) {
@@ -152,6 +154,7 @@ struct ActivityHeader: View {
         HStack {
             Button {
                 Haptics.tap()
+                AudioManager.shared.play(.pop)
                 onClose()
             } label: {
                 HStack(spacing: 4) {

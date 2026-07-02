@@ -5,7 +5,6 @@ struct SleepView: View {
     let onClose: () -> Void
 
     @StateObject private var particles = ParticleSystem()
-    @State private var breathe = false
     @State private var zTick = 0
 
     private let timer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
@@ -30,7 +29,6 @@ struct SleepView: View {
                     .font(.system(size: 56))
                     .position(x: geo.size.width * 0.88, y: geo.size.height * 0.16)
 
-                // estrelinhas piscando
                 ForEach(0..<10, id: \.self) { index in
                     TwinklingStar(delay: Double(index) * 0.25)
                         .position(
@@ -39,21 +37,19 @@ struct SleepView: View {
                         )
                 }
 
-                // caminha
+                // caminha com travesseiro
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(Color(red: 0.42, green: 0.30, blue: 0.55))
+                    .frame(width: geo.size.width * 0.44, height: 70)
+                    .position(x: petCenter.x, y: petCenter.y + 62)
                 Ellipse()
-                    .fill(Color(red: 0.55, green: 0.40, blue: 0.60).opacity(0.8))
-                    .frame(width: geo.size.width * 0.4, height: 80)
-                    .position(x: petCenter.x, y: petCenter.y + 70)
+                    .fill(Color(red: 0.95, green: 0.90, blue: 1.0).opacity(0.95))
+                    .frame(width: 96, height: 42)
+                    .position(x: petCenter.x - geo.size.width * 0.13, y: petCenter.y + 34)
 
                 if let pet = vm.pet {
-                    PetSpriteView(species: pet.species, size: 120)
-                        .scaleEffect(breathe ? 1.05 : 0.98)
-                        .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: breathe)
+                    PetCharacterView(species: pet.species, pose: .sleep, size: 150)
                         .position(petCenter)
-
-                    Text("😴")
-                        .font(.system(size: 30))
-                        .position(x: petCenter.x + 70, y: petCenter.y - 55)
                 }
 
                 ParticleField(system: particles)
@@ -69,6 +65,7 @@ struct SleepView: View {
                                 title: "Acordar! ☀️",
                                 colors: [Color(red: 1.0, green: 0.75, blue: 0.25), Color(red: 0.95, green: 0.60, blue: 0.15)]
                             ) {
+                                AudioManager.shared.play(.chime)
                                 onClose()
                             }
                         } else {
@@ -83,16 +80,16 @@ struct SleepView: View {
                     .padding(.bottom, 16)
                 }
             }
-            .onAppear { breathe = true }
             .onReceive(timer) { _ in
                 guard !energyFull else { return }
                 vm.rest(0.05)
                 zTick += 1
                 if zTick.isMultiple(of: 3) {
-                    particles.burst(["💤"], at: CGPoint(x: petCenter.x + 60, y: petCenter.y - 40), count: 1)
+                    particles.burst(["💤"], at: CGPoint(x: petCenter.x + 65, y: petCenter.y - 40), count: 1)
                 }
                 if energyFull {
                     Haptics.success()
+                    AudioManager.shared.play(.chime)
                     particles.burst(["✨", "💛"], at: petCenter, count: 10)
                 }
             }

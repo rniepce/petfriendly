@@ -69,6 +69,63 @@ enum PetSpecies: String, CaseIterable, Codable, Identifiable {
     }
 }
 
+/// Cores usadas para desenhar o corpo de cada espécie.
+struct PetPalette {
+    let body: Color
+    let bodyDark: Color
+    let belly: Color
+    let earInner: Color
+}
+
+extension PetSpecies {
+    var palette: PetPalette {
+        switch self {
+        case .dog:
+            return PetPalette(
+                body: Color(red: 0.87, green: 0.65, blue: 0.42),
+                bodyDark: Color(red: 0.62, green: 0.42, blue: 0.26),
+                belly: Color(red: 0.98, green: 0.90, blue: 0.76),
+                earInner: Color(red: 0.98, green: 0.75, blue: 0.70)
+            )
+        case .cat:
+            return PetPalette(
+                body: Color(red: 0.95, green: 0.62, blue: 0.32),
+                bodyDark: Color(red: 0.78, green: 0.45, blue: 0.20),
+                belly: Color(red: 1.0, green: 0.92, blue: 0.80),
+                earInner: Color(red: 1.0, green: 0.72, blue: 0.70)
+            )
+        case .rabbit:
+            return PetPalette(
+                body: Color(red: 0.93, green: 0.90, blue: 0.92),
+                bodyDark: Color(red: 0.78, green: 0.72, blue: 0.76),
+                belly: Color(red: 1.0, green: 0.97, blue: 0.97),
+                earInner: Color(red: 1.0, green: 0.70, blue: 0.78)
+            )
+        case .hamster:
+            return PetPalette(
+                body: Color(red: 0.96, green: 0.74, blue: 0.38),
+                bodyDark: Color(red: 0.80, green: 0.56, blue: 0.24),
+                belly: Color(red: 1.0, green: 0.94, blue: 0.80),
+                earInner: Color(red: 1.0, green: 0.78, blue: 0.72)
+            )
+        case .parrot:
+            return PetPalette(
+                body: Color(red: 0.30, green: 0.72, blue: 0.35),
+                bodyDark: Color(red: 0.20, green: 0.55, blue: 0.28),
+                belly: Color(red: 0.75, green: 0.90, blue: 0.55),
+                earInner: Color(red: 1.0, green: 0.78, blue: 0.72)
+            )
+        case .unicorn:
+            return PetPalette(
+                body: Color(red: 0.97, green: 0.94, blue: 1.0),
+                bodyDark: Color(red: 0.82, green: 0.75, blue: 0.95),
+                belly: Color(red: 1.0, green: 0.90, blue: 0.96),
+                earInner: Color(red: 1.0, green: 0.72, blue: 0.85)
+            )
+        }
+    }
+}
+
 enum Mood {
     case happy
     case ok
