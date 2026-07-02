@@ -402,6 +402,14 @@ private struct QuadrupedFigure: View {
         }
     }
 
+    /// Bolinha colorida da crina do unicórnio.
+    private func maneBlob(x: CGFloat, y: CGFloat, color: Color) -> some View {
+        Circle()
+            .fill(color)
+            .frame(width: S * 0.10)
+            .position(x: S * x, y: S * y)
+    }
+
     private func blush(x: CGFloat) -> some View {
         Circle()
             .fill(Color(red: 1.0, green: 0.6, blue: 0.7).opacity(0.45))
