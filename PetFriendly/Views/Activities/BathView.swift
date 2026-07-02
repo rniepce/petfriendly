@@ -12,6 +12,19 @@ private struct FoamBlob: Identifiable {
     var size: CGFloat
 }
 
+struct MudSplatShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        p.move(to: CGPoint(x: rect.midX, y: rect.minY))
+        p.addQuadCurve(to: CGPoint(x: rect.maxX * 0.8, y: rect.maxY * 0.4), control: CGPoint(x: rect.maxX, y: rect.minY * 0.3))
+        p.addQuadCurve(to: CGPoint(x: rect.midX, y: rect.maxY), control: CGPoint(x: rect.maxX * 0.9, y: rect.maxY * 0.9))
+        p.addQuadCurve(to: CGPoint(x: rect.minX * 0.2, y: rect.maxY * 0.5), control: CGPoint(x: rect.minX * 0.1, y: rect.maxY * 0.8))
+        p.addQuadCurve(to: CGPoint(x: rect.midX, y: rect.minY), control: CGPoint(x: rect.minX * 0.2, y: rect.minY * 0.2))
+        p.closeSubpath()
+        return p
+    }
+}
+
 struct BathView: View {
     @EnvironmentObject var vm: GameViewModel
     let onClose: () -> Void
@@ -53,16 +66,76 @@ struct BathView: View {
                 )
                 .ignoresSafeArea()
 
-                // banheira
-                RoundedRectangle(cornerRadius: 44)
-                    .fill(.white)
-                    .frame(width: geo.size.width * 0.55, height: 120)
-                    .shadow(color: .black.opacity(0.12), radius: 8, y: 5)
-                    .position(x: petCenter.x, y: geo.size.height * 0.76)
-                RoundedRectangle(cornerRadius: 36)
-                    .fill(Color(red: 0.55, green: 0.82, blue: 1.0).opacity(0.7))
-                    .frame(width: geo.size.width * 0.5, height: 85)
-                    .position(x: petCenter.x, y: geo.size.height * 0.75)
+                // Banheira de Cerâmica com Pés Dourados/Cinzas
+                ZStack {
+                    // Pés da banheira (claw-feet)
+                    Capsule()
+                        .fill(Color(red: 0.75, green: 0.75, blue: 0.78))
+                        .frame(width: 14, height: 26)
+                        .position(x: petCenter.x - geo.size.width * 0.21, y: geo.size.height * 0.82)
+                    Capsule()
+                        .fill(Color(red: 0.75, green: 0.75, blue: 0.78))
+                        .frame(width: 14, height: 26)
+                        .position(x: petCenter.x + geo.size.width * 0.21, y: geo.size.height * 0.82)
+
+                    // Corpo externo da banheira
+                    RoundedRectangle(cornerRadius: 40)
+                        .fill(
+                            LinearGradient(
+                                colors: [.white, Color(red: 0.93, green: 0.95, blue: 0.98)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .frame(width: geo.size.width * 0.56, height: 110)
+                        .shadow(color: .black.opacity(0.15), radius: 8, y: 5)
+                        .position(x: petCenter.x, y: geo.size.height * 0.755)
+                    
+                    // Borda superior da banheira (Highlight)
+                    RoundedRectangle(cornerRadius: 40)
+                        .stroke(Color(red: 0.88, green: 0.90, blue: 0.94), lineWidth: 4)
+                        .frame(width: geo.size.width * 0.56, height: 110)
+                        .position(x: petCenter.x, y: geo.size.height * 0.755)
+
+                    // Água interna da banheira com transparência e gradiente
+                    RoundedRectangle(cornerRadius: 32)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(red: 0.55, green: 0.85, blue: 1.0).opacity(0.75), Color(red: 0.35, green: 0.68, blue: 0.90).opacity(0.85)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .frame(width: geo.size.width * 0.51, height: 80)
+                        .position(x: petCenter.x, y: geo.size.height * 0.76)
+
+                    // Torneira de metal brilhante
+                    ZStack {
+                        // Cano curvado
+                        Path { path in
+                            path.move(to: CGPoint(x: 0, y: 35))
+                            path.addLine(to: CGPoint(x: 0, y: 10))
+                            path.addQuadCurve(to: CGPoint(x: -20, y: 0), control: CGPoint(x: 0, y: 0))
+                        }
+                        .stroke(
+                            LinearGradient(colors: [Color(red: 0.8, green: 0.8, blue: 0.82), Color(red: 0.6, green: 0.6, blue: 0.63)], startPoint: .top, endPoint: .bottom),
+                            style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                        )
+                        .frame(width: 30, height: 35)
+                        
+                        // Manípulos de água quente/fria
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: 8)
+                            .offset(x: -8, y: 22)
+                        Circle()
+                            .fill(Color.blue)
+                            .frame(width: 8)
+                            .offset(x: 8, y: 22)
+                    }
+                    .position(x: petCenter.x + geo.size.width * 0.25, y: geo.size.height * 0.68)
+                }
+                
                 Text("🫧")
                     .font(.system(size: 30))
                     .position(x: petCenter.x - geo.size.width * 0.2, y: geo.size.height * 0.71)
@@ -76,24 +149,47 @@ struct BathView: View {
                         .position(petCenter)
                 }
 
-                // sujeirinhas
+                // sujeirinhas orgânicas
                 ForEach(spots) { spot in
-                    Circle()
-                        .fill(Color(red: 0.45, green: 0.30, blue: 0.15).opacity(0.65 * spot.amount))
-                        .frame(width: 26, height: 26)
-                        .blur(radius: 3)
+                    MudSplatShape()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(red: 0.45, green: 0.30, blue: 0.15), Color(red: 0.35, green: 0.22, blue: 0.12)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .opacity(0.8 * spot.amount)
+                        .frame(width: 32, height: 26)
+                        .blur(radius: 1.5)
                         .position(
                             x: petCenter.x + spot.offset.width,
                             y: petCenter.y + spot.offset.height
                         )
                 }
 
-                // espuma acumulando
+                // espuma acumulando (bolhas brilhantes)
                 ForEach(foam) { blob in
-                    Circle()
-                        .fill(.white.opacity(0.85))
-                        .frame(width: blob.size, height: blob.size)
-                        .position(blob.position)
+                    ZStack {
+                        Circle()
+                            .fill(
+                                RadialGradient(
+                                    colors: [.white, Color(red: 0.88, green: 0.95, blue: 1.0).opacity(0.85)],
+                                    center: .center,
+                                    startRadius: 0,
+                                    endRadius: blob.size / 2
+                                )
+                            )
+                        Circle()
+                            .stroke(Color.white.opacity(0.55), lineWidth: 1)
+                        // Brilho da bolha
+                        Circle()
+                            .fill(.white.opacity(0.6))
+                            .frame(width: blob.size * 0.22, height: blob.size * 0.22)
+                            .offset(x: -blob.size * 0.22, y: -blob.size * 0.22)
+                    }
+                    .frame(width: blob.size, height: blob.size)
+                    .position(blob.position)
                 }
                 .opacity(phase == .dirty ? 1 : 0)
                 .animation(.easeOut(duration: 0.8), value: phase == .dirty)

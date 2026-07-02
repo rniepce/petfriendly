@@ -24,13 +24,24 @@ struct PetMotion {
     var earWiggle: CGFloat = 0    // tremida das orelhas (graus)
     var mouthOpen: CGFloat = 0    // 0-1 boca aberta
     var eyeOpen: CGFloat = 1      // 0-1 olhos abertos (piscada)
+    var squashX: CGFloat = 1.0    // escala horizontal (física de squash)
+    var squashY: CGFloat = 1.0    // escala vertical (física de stretch)
+    var headSway: CGFloat = 0     // oscilação lateral da cabeça (graus)
 
     static func compute(t: Double, pose: PetPose) -> PetMotion {
         var m = PetMotion()
 
-        // piscada rápida a cada ~3,8 segundos
-        let blinkCycle = t.truncatingRemainder(dividingBy: 3.8)
-        m.eyeOpen = blinkCycle > 3.62 ? 0.15 : 1
+        // Piscada dupla mais fluida a cada 4 segundos
+        let blinkCycle = t.truncatingRemainder(dividingBy: 4.0)
+        if blinkCycle > 3.65 && blinkCycle < 3.78 {
+            m.eyeOpen = 0.1
+        } else if blinkCycle >= 3.78 && blinkCycle < 3.84 {
+            m.eyeOpen = 1.0
+        } else if blinkCycle >= 3.84 && blinkCycle < 3.96 {
+            m.eyeOpen = 0.1
+        } else {
+            m.eyeOpen = 1.0
+        }
 
         switch pose {
         case .idle:
@@ -38,35 +49,50 @@ struct PetMotion {
             m.breath = 1 + CGFloat(sin(t * 2.2)) * 0.012
             m.tailWag = CGFloat(sin(t * 3.0)) * 12
             m.earWiggle = sin(t * 0.8) > 0.97 ? CGFloat(sin(t * 30)) * 8 : 0
+            m.headSway = CGFloat(sin(t * 1.1)) * 1.8
         case .walk:
             m.legSwing = CGFloat(sin(t * 7)) * 16
             m.bob = abs(CGFloat(sin(t * 7))) * 0.012
             m.tailWag = CGFloat(sin(t * 7)) * 10
+            m.squashX = 1 + CGFloat(sin(t * 7)) * 0.018
+            m.squashY = 1 - CGFloat(sin(t * 7)) * 0.018
         case .run:
             m.legSwing = CGFloat(sin(t * 13)) * 27
             m.bob = abs(CGFloat(sin(t * 13))) * 0.02
             m.lean = 7
-            m.tailWag = 14 + CGFloat(sin(t * 13)) * 8
+            m.tailWag = 14 + CGFloat(sin(t * 13)) * 14
             m.earWiggle = CGFloat(sin(t * 13 + 1)) * 10
             m.mouthOpen = 0.35
+            m.squashX = 1 + CGFloat(sin(t * 13)) * 0.05
+            m.squashY = 1 - CGFloat(sin(t * 13)) * 0.05
+            m.headPitch = 4 + CGFloat(sin(t * 13 + 0.5)) * 3
         case .sit:
             m.sit = 1
             m.breath = 1 + CGFloat(sin(t * 2.0)) * 0.012
             m.tailWag = CGFloat(sin(t * 4.5)) * 16
+            m.headSway = CGFloat(sin(t * 0.9)) * 1.2
         case .eat:
             m.headPitch = 26 + CGFloat(sin(t * 9)) * 5
             m.mouthOpen = (CGFloat(sin(t * 9)) + 1) / 2
             m.tailWag = CGFloat(sin(t * 6)) * 18
+            m.squashX = 1 + CGFloat(sin(t * 9)) * 0.02
+            m.squashY = 1 - CGFloat(sin(t * 9)) * 0.02
         case .sleep:
             m.lie = 1
             m.eyeOpen = 0
             m.breath = 1 + CGFloat(sin(t * 1.5)) * 0.03
+            m.squashX = 1.0 - CGFloat(sin(t * 1.5)) * 0.012
+            m.squashY = m.breath
             m.headPitch = 10
         case .happy:
-            m.bob = -abs(CGFloat(sin(t * 6))) * 0.05
+            // Salto elástico (Squash & Stretch ao pular)
+            let bounceVal = sin(t * 6.0)
+            m.bob = -abs(CGFloat(bounceVal)) * 0.06
             m.tailWag = CGFloat(sin(t * 12)) * 22
             m.mouthOpen = 0.5
             m.earWiggle = CGFloat(sin(t * 12)) * 8
+            m.squashY = 1.0 + CGFloat(bounceVal) * 0.08
+            m.squashX = 1.0 - CGFloat(bounceVal) * 0.08
         }
         return m
     }
@@ -93,8 +119,7 @@ struct PetCharacterView: View {
             }
             .rotationEffect(.degrees(Double(m.lean)))
             .offset(y: m.bob * size)
-            .scaleEffect(x: facing, y: 1)
-            .scaleEffect(x: 1, y: m.breath, anchor: .bottom)
+            .scaleEffect(x: facing * m.squashX, y: m.squashY * m.breath, anchor: .bottom)
         }
         .frame(width: size, height: size)
     }
@@ -168,11 +193,32 @@ private struct QuadrupedFigure: View {
     private func leg(x: CGFloat, phase: CGFloat, front: Bool) -> some View {
         let h = S * (front && m.sit > 0.5 ? 0.19 : 0.165)
         let swing = m.sit > 0.5 ? 0 : m.legSwing * phase
-        return Capsule()
-            .fill(front ? pal.body : pal.bodyDark)
-            .frame(width: S * 0.085, height: h)
-            .rotationEffect(.degrees(Double(swing)), anchor: .top)
-            .position(x: S * x, y: S * 0.715 + h / 2)
+        return ZStack(alignment: .bottom) {
+            Capsule()
+                .fill(front ? pal.body : pal.bodyDark)
+            
+            // Meias ou cascos coloridos
+            if species == .unicorn {
+                // Cascos dourados brilhantes
+                UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: 4, bottomTrailingRadius: 4, topTrailingRadius: 0)
+                    .fill(Color(red: 1.0, green: 0.85, blue: 0.25))
+                    .frame(height: h * 0.22)
+            } else if species == .cat {
+                // Meias brancas
+                Capsule()
+                    .fill(Color.white)
+                    .frame(height: h * 0.26)
+            } else if species == .dog {
+                // Patinhas brancas
+                Capsule()
+                    .fill(Color(red: 0.98, green: 0.95, blue: 0.92))
+                    .frame(height: h * 0.20)
+            }
+        }
+        .frame(width: S * 0.085, height: h)
+        .clipShape(Capsule())
+        .rotationEffect(.degrees(Double(swing)), anchor: .top)
+        .position(x: S * x, y: S * 0.715 + h / 2)
     }
 
     private var bodyGroup: some View {
@@ -189,12 +235,27 @@ private struct QuadrupedFigure: View {
             if species == .cat {
                 stripe(x: 0.36, rot: -14)
                 stripe(x: 0.45, rot: -6)
+                stripe(x: 0.54, rot: 2) // listra extra
             }
             if species == .dog {
+                // Mancha no corpo
                 Ellipse()
                     .fill(pal.bodyDark.opacity(0.8))
                     .frame(width: S * 0.16, height: S * 0.11)
                     .position(x: S * 0.36, y: S * 0.56)
+                // Outra mancha menor
+                Circle()
+                    .fill(pal.bodyDark.opacity(0.75))
+                    .frame(width: S * 0.07)
+                    .position(x: S * 0.52, y: S * 0.55)
+            }
+            
+            if species == .unicorn {
+                // Estrelinha mágica no flanco (Cutie Mark)
+                StarShape()
+                    .fill(Color(red: 1.0, green: 0.55, blue: 0.85))
+                    .frame(width: S * 0.055, height: S * 0.055)
+                    .position(x: S * 0.35, y: S * 0.62)
             }
 
             // "coxinha" quando sentado
@@ -246,6 +307,7 @@ private struct QuadrupedFigure: View {
                 tailStrand(color: Color(red: 1.0, green: 0.55, blue: 0.75), angle: -18)
                 tailStrand(color: Color(red: 0.65, green: 0.55, blue: 0.95), angle: -34)
                 tailStrand(color: Color(red: 0.45, green: 0.80, blue: 0.95), angle: -50)
+                tailStrand(color: Color(red: 1.0, green: 0.88, blue: 0.45), angle: -62)
             }
             .frame(width: S, height: S)
         default:
@@ -274,10 +336,34 @@ private struct QuadrupedFigure: View {
                 .fill(pal.body)
                 .frame(width: S * 0.44)
                 .position(x: S * 0.63, y: S * 0.35)
+
+            // Coleira
+            if species == .dog {
+                Capsule()
+                    .fill(Color(red: 0.9, green: 0.25, blue: 0.25))
+                    .frame(width: S * 0.20, height: S * 0.044)
+                    .rotationEffect(.degrees(22))
+                    .position(x: S * 0.52, y: S * 0.51)
+                Circle()
+                    .fill(Color(red: 1.0, green: 0.82, blue: 0.2))
+                    .frame(width: S * 0.045)
+                    .position(x: S * 0.565, y: S * 0.54)
+            } else if species == .cat {
+                Capsule()
+                    .fill(Color(red: 0.25, green: 0.45, blue: 0.85))
+                    .frame(width: S * 0.18, height: S * 0.038)
+                    .rotationEffect(.degrees(22))
+                    .position(x: S * 0.53, y: S * 0.51)
+                Circle()
+                    .fill(Color(red: 1.0, green: 0.82, blue: 0.2))
+                    .frame(width: S * 0.04)
+                    .position(x: S * 0.57, y: S * 0.535)
+            }
+
             face
         }
         .frame(width: S, height: S)
-        .rotationEffect(.degrees(Double(m.headPitch)), anchor: UnitPoint(x: 0.52, y: 0.55))
+        .rotationEffect(.degrees(Double(m.headPitch + m.headSway)), anchor: UnitPoint(x: 0.52, y: 0.55))
         .offset(
             x: m.sit * -0.02 * S + m.lie * -0.04 * S,
             y: m.sit * -0.03 * S + m.lie * 0.10 * S
@@ -355,6 +441,26 @@ private struct QuadrupedFigure: View {
             blush(x: 0.545)
             blush(x: 0.80)
 
+            // Mancha no olho do doguinho
+            if species == .dog {
+                Circle()
+                    .fill(pal.bodyDark.opacity(0.85))
+                    .frame(width: S * 0.13, height: S * 0.15)
+                    .position(x: S * 0.56, y: S * 0.35)
+            }
+
+            // Almofadas de bigodes brancas no gatinho
+            if species == .cat {
+                Circle()
+                    .fill(.white.opacity(0.80))
+                    .frame(width: S * 0.08, height: S * 0.06)
+                    .position(x: S * 0.635, y: S * 0.45)
+                Circle()
+                    .fill(.white.opacity(0.80))
+                    .frame(width: S * 0.08, height: S * 0.06)
+                    .position(x: S * 0.715, y: S * 0.45)
+            }
+
             eye(x: 0.565)
             eye(x: 0.72)
 
@@ -368,11 +474,45 @@ private struct QuadrupedFigure: View {
                 .frame(width: S * 0.042)
                 .position(x: S * 0.675, y: S * 0.405)
 
+            // Dentes salientes do coelhinho
             if species == .rabbit {
-                RoundedRectangle(cornerRadius: S * 0.012)
-                    .fill(.white)
-                    .frame(width: S * 0.045, height: S * 0.045)
-                    .position(x: S * 0.675, y: S * 0.478)
+                HStack(spacing: S * 0.006) {
+                    RoundedRectangle(cornerRadius: S * 0.005)
+                        .fill(.white)
+                        .frame(width: S * 0.016, height: S * 0.032)
+                    RoundedRectangle(cornerRadius: S * 0.005)
+                        .fill(.white)
+                        .frame(width: S * 0.016, height: S * 0.032)
+                }
+                .position(x: S * 0.675, y: S * 0.485)
+            }
+
+            // Hamster segurando semente
+            if species == .hamster && m.mouthOpen > 0.3 {
+                // Semente de girassol
+                ZStack {
+                    TriangleShape()
+                        .fill(Color(red: 0.25, green: 0.25, blue: 0.25))
+                        .frame(width: S * 0.045, height: S * 0.065)
+                    Circle()
+                        .fill(Color(red: 0.45, green: 0.45, blue: 0.45))
+                        .frame(width: S * 0.045)
+                        .offset(y: S * 0.02)
+                }
+                .rotationEffect(.degrees(15))
+                .position(x: S * 0.675, y: S * 0.53)
+            }
+
+            // Mãozinhas do hamster
+            if species == .hamster {
+                Circle()
+                    .fill(pal.earInner)
+                    .frame(width: S * 0.035)
+                    .position(x: S * 0.60, y: S * 0.53)
+                Circle()
+                    .fill(pal.earInner)
+                    .frame(width: S * 0.035)
+                    .position(x: S * 0.72, y: S * 0.53)
             }
 
             mouth
@@ -385,29 +525,48 @@ private struct QuadrupedFigure: View {
             }
 
             if species == .unicorn {
-                TriangleShape()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color(red: 0.95, green: 0.70, blue: 0.20), Color(red: 1.0, green: 0.87, blue: 0.45)],
-                            startPoint: .bottom,
-                            endPoint: .top
+                // Chifre mágico detalhado com espiral e brilho
+                ZStack {
+                    TriangleShape()
+                        .fill(Color(red: 1.0, green: 0.9, blue: 0.55).opacity(0.4))
+                        .frame(width: S * 0.11, height: S * 0.19)
+                        .blur(radius: 3)
+                    TriangleShape()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(red: 1.0, green: 0.85, blue: 0.45), Color(red: 1.0, green: 0.55, blue: 0.85)],
+                                startPoint: .bottom,
+                                endPoint: .top
+                            )
                         )
-                    )
-                    .frame(width: S * 0.07, height: S * 0.16)
-                    .position(x: S * 0.63, y: S * 0.075)
-                maneBlob(x: 0.545, y: 0.115, color: Color(red: 1.0, green: 0.55, blue: 0.75))
-                maneBlob(x: 0.49, y: 0.17, color: Color(red: 0.65, green: 0.55, blue: 0.95))
-                maneBlob(x: 0.455, y: 0.24, color: Color(red: 0.45, green: 0.80, blue: 0.95))
+                        .frame(width: S * 0.07, height: S * 0.16)
+                    VStack(spacing: S * 0.025) {
+                        ForEach(0..<3) { _ in
+                            Capsule()
+                                .fill(Color.white.opacity(0.75))
+                                .frame(width: S * 0.045, height: S * 0.015)
+                                .rotationEffect(.degrees(-20))
+                        }
+                    }
+                    .offset(y: -S * 0.01)
+                }
+                .position(x: S * 0.63, y: S * 0.075)
+
+                // Crina do unicórnio
+                maneBlob(x: 0.545, y: 0.115, color: Color(red: 1.0, green: 0.55, blue: 0.75), scale: 1.15)
+                maneBlob(x: 0.49, y: 0.17, color: Color(red: 0.65, green: 0.55, blue: 0.95), scale: 1.0)
+                maneBlob(x: 0.455, y: 0.24, color: Color(red: 0.45, green: 0.80, blue: 0.95), scale: 0.88)
             }
         }
     }
 
     /// Bolinha colorida da crina do unicórnio.
-    private func maneBlob(x: CGFloat, y: CGFloat, color: Color) -> some View {
+    private func maneBlob(x: CGFloat, y: CGFloat, color: Color, scale: CGFloat = 1.0) -> some View {
         Circle()
             .fill(color)
-            .frame(width: S * 0.10)
+            .frame(width: S * 0.10 * scale)
             .position(x: S * x, y: S * y)
+            .shadow(color: color.opacity(0.3), radius: 2)
     }
 
     private func blush(x: CGFloat) -> some View {
@@ -438,10 +597,19 @@ private struct QuadrupedFigure: View {
                 Ellipse()
                     .fill(Color(red: 0.55, green: 0.25, blue: 0.25))
                     .frame(width: S * 0.07, height: S * 0.015 + S * 0.06 * m.mouthOpen)
-                Ellipse()
-                    .fill(Color(red: 1.0, green: 0.55, blue: 0.6))
-                    .frame(width: S * 0.04, height: S * 0.008 + S * 0.03 * m.mouthOpen)
-                    .offset(y: S * 0.012)
+                
+                // Língua fofa no doguinho e gatinho
+                if species == .dog || species == .cat {
+                    Ellipse()
+                        .fill(Color(red: 1.0, green: 0.50, blue: 0.55))
+                        .frame(width: S * 0.05, height: S * 0.035)
+                        .offset(y: S * 0.015)
+                } else {
+                    Ellipse()
+                        .fill(Color(red: 1.0, green: 0.55, blue: 0.6))
+                        .frame(width: S * 0.04, height: S * 0.008 + S * 0.03 * m.mouthOpen)
+                        .offset(y: S * 0.012)
+                }
             }
             .position(x: S * 0.675, y: S * 0.478)
         } else {
@@ -511,12 +679,25 @@ private struct BirdFigure: View {
             .frame(width: S, height: S)
             .scaleEffect(x: 1 + m.lie * 0.1, y: 1 - m.lie * 0.15, anchor: .bottom)
 
-            // asa (bate quando corre ou está feliz)
-            Ellipse()
-                .fill(darkGreen)
-                .frame(width: S * 0.20, height: S * 0.34)
-                .rotationEffect(.degrees(-14 + Double(m.legSwing) * 1.2 + Double(m.tailWag) * 0.4), anchor: .top)
-                .position(x: S * 0.42, y: S * 0.56)
+            // asa multicamadas colorida (bate quando corre ou está feliz)
+            ZStack {
+                // Pena azul externa
+                Ellipse()
+                    .fill(blue)
+                    .frame(width: S * 0.21, height: S * 0.35)
+                    .offset(x: -S * 0.015, y: S * 0.015)
+                // Pena amarela média
+                Ellipse()
+                    .fill(orange)
+                    .frame(width: S * 0.17, height: S * 0.30)
+                    .offset(x: -S * 0.008, y: S * 0.008)
+                // Pena verde principal
+                Ellipse()
+                    .fill(darkGreen)
+                    .frame(width: S * 0.18, height: S * 0.28)
+            }
+            .rotationEffect(.degrees(-14 + Double(m.legSwing) * 1.2 + Double(m.tailWag) * 0.4), anchor: .top)
+            .position(x: S * 0.42, y: S * 0.56)
 
             headGroup
         }
@@ -572,12 +753,22 @@ private struct BirdFigure: View {
             .scaleEffect(y: max(0.12, m.eyeOpen))
             .position(x: S * 0.655, y: S * 0.27)
 
-            // bico
-            TriangleShape()
-                .fill(orange)
-                .frame(width: S * 0.12, height: S * 0.11)
-                .rotationEffect(.degrees(95 + Double(m.mouthOpen) * 12))
-                .position(x: S * 0.775, y: S * 0.315)
+            // Bico realista (superior e inferior articulados)
+            ZStack {
+                // Bico inferior
+                TriangleShape()
+                    .fill(orange.opacity(0.85))
+                    .frame(width: S * 0.08, height: S * 0.07)
+                    .rotationEffect(.degrees(105 + Double(m.mouthOpen) * 35))
+                    .position(x: S * 0.76, y: S * 0.34)
+                
+                // Bico superior
+                TriangleShape()
+                    .fill(orange)
+                    .frame(width: S * 0.13, height: S * 0.12)
+                    .rotationEffect(.degrees(95 - Double(m.mouthOpen) * 5))
+                    .position(x: S * 0.775, y: S * 0.31)
+            }
 
             // bochecha
             Circle()
@@ -586,18 +777,24 @@ private struct BirdFigure: View {
                 .position(x: S * 0.60, y: S * 0.35)
         }
         .frame(width: S, height: S)
-        .rotationEffect(.degrees(Double(m.headPitch)), anchor: UnitPoint(x: 0.52, y: 0.42))
+        .rotationEffect(.degrees(Double(m.headPitch + m.headSway)), anchor: UnitPoint(x: 0.52, y: 0.42))
     }
 }
 
 #Preview(traits: .landscapeLeft) {
     HStack(spacing: 8) {
         PetCharacterView(species: .dog, pose: .idle, size: 110)
+            .environmentObject(GameViewModel())
         PetCharacterView(species: .cat, pose: .sit, size: 110)
+            .environmentObject(GameViewModel())
         PetCharacterView(species: .rabbit, pose: .run, size: 110)
+            .environmentObject(GameViewModel())
         PetCharacterView(species: .unicorn, pose: .happy, size: 110)
+            .environmentObject(GameViewModel())
         PetCharacterView(species: .parrot, pose: .idle, size: 110)
+            .environmentObject(GameViewModel())
         PetCharacterView(species: .hamster, pose: .sleep, size: 110)
+            .environmentObject(GameViewModel())
     }
     .padding()
     .background(Color(red: 1.0, green: 0.93, blue: 0.82))

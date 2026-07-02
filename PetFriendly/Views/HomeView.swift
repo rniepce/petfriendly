@@ -269,53 +269,229 @@ struct RoomBackground: View {
                     endPoint: .bottom
                 )
 
-                // chão de madeira
+                // chão de madeira com textura de tábuas
                 VStack(spacing: 0) {
                     Spacer()
-                    Rectangle()
+                    ZStack {
+                        Rectangle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color(red: 0.85, green: 0.65, blue: 0.45), Color(red: 0.75, green: 0.55, blue: 0.38)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                        // Linhas horizontais das tábuas
+                        VStack(spacing: 24) {
+                            ForEach(0..<4) { _ in
+                                Divider()
+                                    .background(Color(red: 0.60, green: 0.42, blue: 0.28).opacity(0.35))
+                            }
+                        }
+                        .padding(.vertical, 12)
+                    }
+                    .frame(height: geo.size.height * 0.3)
+                }
+
+                // Janela com céu e nuvens
+                ZStack {
+                    // Fundo da janela (Céu)
+                    RoundedRectangle(cornerRadius: 18)
                         .fill(
                             LinearGradient(
-                                colors: [Color(red: 0.85, green: 0.65, blue: 0.45), Color(red: 0.75, green: 0.55, blue: 0.38)],
+                                colors: [Color(red: 0.55, green: 0.80, blue: 1.0), Color(red: 0.82, green: 0.94, blue: 1.0)],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
                         )
-                        .frame(height: geo.size.height * 0.3)
-                }
-
-                // janela com céu
-                RoundedRectangle(cornerRadius: 18)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color(red: 0.55, green: 0.8, blue: 1.0), Color(red: 0.8, green: 0.92, blue: 1.0)],
-                            startPoint: .top,
-                            endPoint: .bottom
+                        .frame(width: 140, height: 110)
+                        .overlay(
+                            // Nuvem pequena flutuando na janela
+                            VectorCloud(scale: 0.45, opacity: 0.8)
+                                .offset(x: 10, y: -5)
                         )
-                    )
-                    .frame(width: 130, height: 100)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18)
-                            .stroke(Color(red: 0.7, green: 0.5, blue: 0.35), lineWidth: 6)
-                    )
-                    .overlay(Text("☀️").font(.system(size: 30)).offset(x: -30, y: -20))
-                    .overlay(Text("☁️").font(.system(size: 22)).offset(x: 28, y: 10))
-                    .position(x: geo.size.width * 0.17, y: geo.size.height * 0.3)
+                        .overlay(
+                            // Sol pequeno
+                            Circle()
+                                .fill(RadialGradient(colors: [Color(red: 1.0, green: 0.88, blue: 0.45), Color(red: 1.0, green: 0.60, blue: 0.20)], center: .center, startRadius: 0, endRadius: 22))
+                                .frame(width: 28, height: 28)
+                                .position(x: 35, y: 30)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                    
+                    // Grade e moldura da janela
+                    RoundedRectangle(cornerRadius: 18)
+                        .stroke(Color(red: 0.70, green: 0.50, blue: 0.35), lineWidth: 8)
+                        .frame(width: 140, height: 110)
+                        .shadow(color: .black.opacity(0.15), radius: 4, x: 0, y: 3)
+                    
+                    // Divisórias de vidro (cruzeta)
+                    Rectangle()
+                        .fill(Color(red: 0.70, green: 0.50, blue: 0.35))
+                        .frame(width: 6, height: 110)
+                    Rectangle()
+                        .fill(Color(red: 0.70, green: 0.50, blue: 0.35))
+                        .frame(width: 140, height: 6)
+                }
+                .position(x: geo.size.width * 0.17, y: geo.size.height * 0.3)
 
-                // tapete
-                Ellipse()
-                    .fill(Color(red: 0.98, green: 0.7, blue: 0.65).opacity(0.6))
-                    .frame(width: geo.size.width * 0.4, height: 70)
-                    .position(x: geo.size.width * 0.5, y: geo.size.height * 0.72)
+                // Tapete com detalhes circulares
+                ZStack {
+                    Ellipse()
+                        .fill(Color(red: 0.98, green: 0.70, blue: 0.65).opacity(0.75))
+                        .frame(width: geo.size.width * 0.42, height: 74)
+                    Ellipse()
+                        .fill(Color(red: 1.0, green: 0.82, blue: 0.78).opacity(0.85))
+                        .frame(width: geo.size.width * 0.36, height: 58)
+                    Ellipse()
+                        .stroke(Color(red: 0.95, green: 0.55, blue: 0.50).opacity(0.5), style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round, dash: [6, 6]))
+                        .frame(width: geo.size.width * 0.38, height: 64)
+                }
+                .position(x: geo.size.width * 0.5, y: geo.size.height * 0.72)
 
-                Text("🪴")
-                    .font(.system(size: 46))
-                    .position(x: geo.size.width * 0.86, y: geo.size.height * 0.6)
-                Text("🖼️")
-                    .font(.system(size: 40))
-                    .position(x: geo.size.width * 0.76, y: geo.size.height * 0.22)
-                Text("🧸")
-                    .font(.system(size: 34))
-                    .position(x: geo.size.width * 0.1, y: geo.size.height * 0.72)
+                // Planta no Vaso Vetorial
+                ZStack(alignment: .bottom) {
+                    // Folhas da planta
+                    ZStack {
+                        // Folha esquerda
+                        Capsule()
+                            .fill(LinearGradient(colors: [Color(red: 0.28, green: 0.66, blue: 0.34), Color(red: 0.20, green: 0.50, blue: 0.25)], startPoint: .top, endPoint: .bottom))
+                            .frame(width: 12, height: 42)
+                            .rotationEffect(.degrees(-24), anchor: .bottom)
+                        // Folha direita
+                        Capsule()
+                            .fill(LinearGradient(colors: [Color(red: 0.32, green: 0.72, blue: 0.38), Color(red: 0.22, green: 0.55, blue: 0.28)], startPoint: .top, endPoint: .bottom))
+                            .frame(width: 14, height: 48)
+                            .rotationEffect(.degrees(20), anchor: .bottom)
+                        // Folha central
+                        Capsule()
+                            .fill(LinearGradient(colors: [Color(red: 0.35, green: 0.78, blue: 0.42), Color(red: 0.25, green: 0.58, blue: 0.30)], startPoint: .top, endPoint: .bottom))
+                            .frame(width: 15, height: 56)
+                            .offset(y: -4)
+                    }
+                    .offset(y: -14)
+                    
+                    // Vaso de cerâmica
+                    UnevenRoundedRectangle(topLeadingRadius: 2, bottomLeadingRadius: 8, bottomTrailingRadius: 8, topTrailingRadius: 2)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(red: 0.88, green: 0.52, blue: 0.35), Color(red: 0.74, green: 0.38, blue: 0.22)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .frame(width: 38, height: 32)
+                        .shadow(color: .black.opacity(0.1), radius: 3, x: 0, y: 2)
+                }
+                .position(x: geo.size.width * 0.86, y: geo.size.height * 0.58)
+
+                // Quadro Decorativo de Pôr-do-Sol
+                ZStack {
+                    // Moldura do quadro
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color(red: 0.60, green: 0.42, blue: 0.28))
+                        .frame(width: 70, height: 60)
+                        .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
+                    
+                    // Tela de pintura
+                    Rectangle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(red: 1.0, green: 0.55, blue: 0.50), Color(red: 1.0, green: 0.82, blue: 0.45)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .frame(width: 58, height: 48)
+                        .overlay(
+                            // Sol se pondo na pintura
+                            Circle()
+                                .fill(Color(red: 1.0, green: 0.92, blue: 0.60))
+                                .frame(width: 16, height: 16)
+                                .offset(y: 8)
+                        )
+                        .overlay(
+                            // Colina na pintura
+                            Path { path in
+                                path.move(to: CGPoint(x: 0, y: 48))
+                                path.addQuadCurve(to: CGPoint(x: 58, y: 48), control: CGPoint(x: 29, y: 34))
+                            }
+                            .fill(Color(red: 0.40, green: 0.28, blue: 0.48))
+                        )
+                        .clipShape(Rectangle())
+                }
+                .position(x: geo.size.width * 0.76, y: geo.size.height * 0.22)
+
+                // Ursinho de Pelúcia Vetorial
+                ZStack {
+                    let bearColor = Color(red: 0.72, green: 0.52, blue: 0.35)
+                    let darkBearColor = Color(red: 0.58, green: 0.38, blue: 0.22)
+                    let creamColor = Color(red: 0.95, green: 0.86, blue: 0.76)
+                    
+                    // Orelhas
+                    Circle()
+                        .fill(bearColor)
+                        .frame(width: 14)
+                        .offset(x: -15, y: -14)
+                    Circle()
+                        .fill(bearColor)
+                        .frame(width: 14)
+                        .offset(x: 15, y: -14)
+                    Circle()
+                        .fill(creamColor)
+                        .frame(width: 6)
+                        .offset(x: -15, y: -14)
+                    Circle()
+                        .fill(creamColor)
+                        .frame(width: 6)
+                        .offset(x: 15, y: -14)
+                    
+                    // Patas de trás
+                    Circle()
+                        .fill(darkBearColor)
+                        .frame(width: 16)
+                        .offset(x: -14, y: 15)
+                    Circle()
+                        .fill(darkBearColor)
+                        .frame(width: 16)
+                        .offset(x: 14, y: 15)
+                    
+                    // Corpo
+                    Circle()
+                        .fill(bearColor)
+                        .frame(width: 38)
+                        .offset(y: 6)
+                    Circle()
+                        .fill(creamColor)
+                        .frame(width: 18)
+                        .offset(y: 6)
+                    
+                    // Cabeça
+                    Circle()
+                        .fill(bearColor)
+                        .frame(width: 32)
+                    
+                    // Olhos
+                    Circle()
+                        .fill(.black)
+                        .frame(width: 4)
+                        .offset(x: -6, y: -2)
+                    Circle()
+                        .fill(.black)
+                        .frame(width: 4)
+                        .offset(x: 6, y: -2)
+                    
+                    // Muzzle (Focinho)
+                    Ellipse()
+                        .fill(creamColor)
+                        .frame(width: 12, height: 10)
+                        .offset(y: 4)
+                    Circle()
+                        .fill(Color(red: 0.3, green: 0.2, blue: 0.15))
+                        .frame(width: 3.5)
+                        .offset(y: 2)
+                }
+                .position(x: geo.size.width * 0.1, y: geo.size.height * 0.72)
             }
         }
         .ignoresSafeArea()

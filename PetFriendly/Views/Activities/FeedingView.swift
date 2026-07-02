@@ -39,11 +39,22 @@ struct FeedingView: View {
                 )
                 .ignoresSafeArea()
 
-                // toalhinha
-                Ellipse()
-                    .fill(Color(red: 0.95, green: 0.55, blue: 0.45).opacity(0.35))
-                    .frame(width: geo.size.width * 0.42, height: 76)
-                    .position(x: bowlPos.x - 40, y: bowlPos.y + 16)
+                // Toalha de mesa decorada com listras
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Color(red: 0.95, green: 0.82, blue: 0.72))
+                        .frame(width: geo.size.width * 0.44, height: 80)
+                        .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
+                    VStack(spacing: 8) {
+                        ForEach(0..<6) { _ in
+                            Rectangle()
+                                .fill(Color(red: 0.90, green: 0.62, blue: 0.52).opacity(0.35))
+                                .frame(height: 2)
+                        }
+                    }
+                    .frame(width: geo.size.width * 0.44, height: 80)
+                }
+                .position(x: bowlPos.x - 40, y: bowlPos.y + 16)
 
                 bowl(at: bowlPos)
 
@@ -110,24 +121,75 @@ struct FeedingView: View {
 
     private func bowl(at pos: CGPoint) -> some View {
         ZStack {
+            // Sombra projetada
             UnevenRoundedRectangle(
-                topLeadingRadius: 8,
-                bottomLeadingRadius: 26,
-                bottomTrailingRadius: 26,
-                topTrailingRadius: 8
+                topLeadingRadius: 10,
+                bottomLeadingRadius: 28,
+                bottomTrailingRadius: 28,
+                topTrailingRadius: 10
             )
-            .fill(Color(red: 0.90, green: 0.35, blue: 0.40))
-            .frame(width: 86, height: 42)
-            .shadow(color: .black.opacity(0.12), radius: 4, y: 3)
+            .fill(.black.opacity(0.15))
+            .frame(width: 90, height: 44)
+            .offset(y: 4)
+            .blur(radius: 2)
+
+            // Corpo principal da tigela (gradiente cerâmico brilhante)
+            UnevenRoundedRectangle(
+                topLeadingRadius: 10,
+                bottomLeadingRadius: 28,
+                bottomTrailingRadius: 28,
+                topTrailingRadius: 10
+            )
+            .fill(
+                LinearGradient(
+                    colors: [Color(red: 0.95, green: 0.45, blue: 0.45), Color(red: 0.82, green: 0.25, blue: 0.32)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .frame(width: 88, height: 44)
+            
+            // Reflexo brilhante (Highlight) no corpo da tigela
+            UnevenRoundedRectangle(
+                topLeadingRadius: 6,
+                bottomLeadingRadius: 22,
+                bottomTrailingRadius: 22,
+                topTrailingRadius: 6
+            )
+            .stroke(Color.white.opacity(0.35), lineWidth: 2)
+            .frame(width: 80, height: 38)
+            .mask(
+                LinearGradient(
+                    colors: [.white, .clear],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+
+            // Borda/Abertura superior (Elipse)
             Ellipse()
-                .fill(Color(red: 0.70, green: 0.20, blue: 0.28))
+                .fill(
+                    LinearGradient(
+                        colors: [Color(red: 0.70, green: 0.20, blue: 0.26), Color(red: 0.55, green: 0.12, blue: 0.18)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(width: 78, height: 18)
+                .offset(y: -21)
+            
+            // Brilho na borda superior
+            Ellipse()
+                .stroke(Color.white.opacity(0.3), lineWidth: 1.5)
                 .frame(width: 76, height: 16)
-                .offset(y: -20)
+                .offset(y: -21)
+
             if let food = bowlFood {
                 Text(food)
-                    .font(.system(size: 28))
-                    .offset(y: -16)
-                    .transition(.scale)
+                    .font(.system(size: 30))
+                    .offset(y: -18)
+                    .transition(.scale.combined(with: .opacity))
+                    .shadow(color: .black.opacity(0.15), radius: 2)
             }
         }
         .position(pos)
@@ -184,6 +246,7 @@ private struct DraggableFood: View {
 
     @State private var dragOffset: CGSize = .zero
     @State private var isDragging = false
+    @State private var bobY: CGFloat = 0.0
 
     var body: some View {
         Text(emoji)
@@ -196,6 +259,7 @@ private struct DraggableFood: View {
             )
             .opacity(enabled ? 1 : 0.45)
             .offset(dragOffset)
+            .offset(y: enabled && !isDragging ? bobY : 0)
             .scaleEffect(isDragging ? 1.25 : 1)
             .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isDragging)
             .gesture(
@@ -219,5 +283,12 @@ private struct DraggableFood: View {
                         }
                     }
             )
+            .onAppear {
+                if enabled {
+                    withAnimation(.easeInOut(duration: Double.random(in: 1.5...2.2)).repeatForever(autoreverses: true)) {
+                        bobY = -6
+                    }
+                }
+            }
     }
 }

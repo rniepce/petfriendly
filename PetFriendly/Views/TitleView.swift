@@ -14,30 +14,50 @@ struct TitleView: View {
             .ignoresSafeArea()
 
             GeometryReader { geo in
-                Text("☀️")
-                    .font(.system(size: 60))
-                    .position(x: geo.size.width * 0.9, y: geo.size.height * 0.15)
-                Text("☁️")
-                    .font(.system(size: 50))
-                    .position(x: geo.size.width * 0.15, y: geo.size.height * 0.18)
-                Text("☁️")
-                    .font(.system(size: 36))
-                    .position(x: geo.size.width * 0.35, y: geo.size.height * 0.1)
-                Text("🌈")
-                    .font(.system(size: 54))
-                    .position(x: geo.size.width * 0.08, y: geo.size.height * 0.55)
+                // Arco-Íris Vetorial no fundo
+                VectorRainbow()
+                    .position(x: geo.size.width * 0.25, y: geo.size.height * 0.58)
 
-                // graminha
-                Rectangle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color(red: 0.60, green: 0.87, blue: 0.50), Color(red: 0.45, green: 0.76, blue: 0.40)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
+                // Sol Vetorial Animado
+                VectorSun()
+                    .position(x: geo.size.width * 0.85, y: geo.size.height * 0.20)
+
+                // Nuvens Vetoriais Animadas
+                VectorCloud(scale: 0.9, opacity: 0.95)
+                    .position(x: geo.size.width * 0.18, y: geo.size.height * 0.22)
+                VectorCloud(scale: 0.65, opacity: 0.85)
+                    .position(x: geo.size.width * 0.48, y: geo.size.height * 0.15)
+                VectorCloud(scale: 0.75, opacity: 0.90)
+                    .position(x: geo.size.width * 0.72, y: geo.size.height * 0.26)
+
+                // Colinas verdes com gradiente (criando profundidade)
+                Path { path in
+                    path.move(to: CGPoint(x: 0, y: geo.size.height * 0.76))
+                    path.addQuadCurve(to: CGPoint(x: geo.size.width, y: geo.size.height * 0.82), control: CGPoint(x: geo.size.width * 0.5, y: geo.size.height * 0.70))
+                    path.addLine(to: CGPoint(x: geo.size.width, y: geo.size.height))
+                    path.addLine(to: CGPoint(x: 0, y: geo.size.height))
+                }
+                .fill(
+                    LinearGradient(
+                        colors: [Color(red: 0.62, green: 0.88, blue: 0.52), Color(red: 0.44, green: 0.76, blue: 0.38)],
+                        startPoint: .top,
+                        endPoint: .bottom
                     )
-                    .frame(height: geo.size.height * 0.16)
-                    .position(x: geo.size.width / 2, y: geo.size.height * 0.95)
+                )
+
+                Path { path in
+                    path.move(to: CGPoint(x: 0, y: geo.size.height * 0.84))
+                    path.addQuadCurve(to: CGPoint(x: geo.size.width, y: geo.size.height * 0.80), control: CGPoint(x: geo.size.width * 0.45, y: geo.size.height * 0.87))
+                    path.addLine(to: CGPoint(x: geo.size.width, y: geo.size.height))
+                    path.addLine(to: CGPoint(x: 0, y: geo.size.height))
+                }
+                .fill(
+                    LinearGradient(
+                        colors: [Color(red: 0.55, green: 0.85, blue: 0.45), Color(red: 0.38, green: 0.70, blue: 0.32)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
             }
             .allowsHitTesting(false)
             .ignoresSafeArea()

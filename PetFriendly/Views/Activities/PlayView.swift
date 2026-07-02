@@ -24,35 +24,61 @@ struct PlayView: View {
             let homeSpot = CGPoint(x: geo.size.width * 0.25, y: geo.size.height * 0.60)
 
             ZStack {
-                // céu e grama do quintal
+                // céu e grama do quintal com colinas
                 LinearGradient(
                     colors: [Color(red: 0.55, green: 0.82, blue: 1.0), Color(red: 0.80, green: 0.94, blue: 1.0)],
                     startPoint: .top,
                     endPoint: .bottom
                 )
                 .ignoresSafeArea()
-                VStack(spacing: 0) {
-                    Spacer()
-                    Rectangle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color(red: 0.55, green: 0.85, blue: 0.45), Color(red: 0.40, green: 0.72, blue: 0.35)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                        .frame(height: geo.size.height * 0.55)
+                
+                // Sol e Nuvens do Quintal
+                VectorSun()
+                    .position(x: geo.size.width * 0.88, y: geo.size.height * 0.18)
+                VectorCloud(scale: 0.7, opacity: 0.85)
+                    .position(x: geo.size.width * 0.28, y: geo.size.height * 0.15)
+                VectorCloud(scale: 0.55, opacity: 0.75)
+                    .position(x: geo.size.width * 0.58, y: geo.size.height * 0.12)
+                
+                // Colinas Verdes (Profundidade)
+                Path { path in
+                    path.move(to: CGPoint(x: 0, y: geo.size.height * 0.52))
+                    path.addQuadCurve(to: CGPoint(x: geo.size.width, y: geo.size.height * 0.56), control: CGPoint(x: geo.size.width * 0.5, y: geo.size.height * 0.42))
+                    path.addLine(to: CGPoint(x: geo.size.width, y: geo.size.height))
+                    path.addLine(to: CGPoint(x: 0, y: geo.size.height))
                 }
+                .fill(
+                    LinearGradient(
+                        colors: [Color(red: 0.62, green: 0.88, blue: 0.52), Color(red: 0.44, green: 0.76, blue: 0.38)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .ignoresSafeArea()
+                
+                Path { path in
+                    path.move(to: CGPoint(x: 0, y: geo.size.height * 0.60))
+                    path.addQuadCurve(to: CGPoint(x: geo.size.width, y: geo.size.height * 0.55), control: CGPoint(x: geo.size.width * 0.42, y: geo.size.height * 0.64))
+                    path.addLine(to: CGPoint(x: geo.size.width, y: geo.size.height))
+                    path.addLine(to: CGPoint(x: 0, y: geo.size.height))
+                }
+                .fill(
+                    LinearGradient(
+                        colors: [Color(red: 0.55, green: 0.85, blue: 0.45), Color(red: 0.38, green: 0.70, blue: 0.32)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
                 .ignoresSafeArea()
 
-                Text("☀️").font(.system(size: 52))
-                    .position(x: geo.size.width * 0.9, y: geo.size.height * 0.13)
-                Text("☁️").font(.system(size: 40))
-                    .position(x: geo.size.width * 0.3, y: geo.size.height * 0.12)
-                Text("🌼").font(.system(size: 30))
-                    .position(x: geo.size.width * 0.08, y: geo.size.height * 0.85)
-                Text("🌷").font(.system(size: 30))
-                    .position(x: geo.size.width * 0.93, y: geo.size.height * 0.8)
+                // Flores Vetoriais
+                VectorFlower(size: 26)
+                    .position(x: geo.size.width * 0.08, y: geo.size.height * 0.83)
+                VectorFlower(size: 28)
+                    .position(x: geo.size.width * 0.92, y: geo.size.height * 0.86)
+                VectorFlower(size: 24)
+                    .position(x: geo.size.width * 0.16, y: geo.size.height * 0.88)
+                
                 Text("🦋").font(.system(size: 26))
                     .position(x: geo.size.width * 0.14, y: geo.size.height * 0.38)
 
@@ -60,9 +86,7 @@ struct PlayView: View {
                     PetCharacterView(species: pet.species, pose: pose, facing: facing, size: 140)
                         .position(petPos)
 
-                    Text("⚽")
-                        .font(.system(size: 52))
-                        .shadow(color: .black.opacity(0.2), radius: 4, y: 3)
+                    VectorBall()
                         .position(ballPos)
                         .gesture(
                             DragGesture(coordinateSpace: .named("playSpace"))
@@ -183,5 +207,57 @@ struct PlayView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Bola Vetorial em SwiftUI
+
+struct VectorBall: View {
+    var body: some View {
+        ZStack {
+            // Sombra interna e fundo branco
+            Circle()
+                .fill(.white)
+                .frame(width: 52, height: 52)
+                .shadow(color: .black.opacity(0.18), radius: 4, y: 3)
+            
+            // Contorno externo
+            Circle()
+                .stroke(Color(red: 0.20, green: 0.20, blue: 0.22), lineWidth: 3.5)
+                .frame(width: 52, height: 52)
+            
+            // Gomos da bola de futebol (Pentágonos e linhas pretas)
+            Group {
+                // Pentágono central
+                StarShape()
+                    .fill(Color(red: 0.18, green: 0.18, blue: 0.20))
+                    .frame(width: 14, height: 14)
+                
+                // Gomos radiais
+                ForEach(0..<5) { i in
+                    Path { path in
+                        path.move(to: CGPoint(x: 26, y: 26))
+                        let angle = CGFloat(i) * (2 * CGFloat.pi / 5) - CGFloat.pi / 2
+                        let x1 = 26 + 14 * cos(angle - 0.2)
+                        let y1 = 26 + 14 * sin(angle - 0.2)
+                        let x2 = 26 + 26 * cos(angle - 0.3)
+                        let y2 = 26 + 26 * sin(angle - 0.3)
+                        let x3 = 26 + 26 * cos(angle + 0.3)
+                        let y3 = 26 + 26 * sin(angle + 0.3)
+                        let x4 = 26 + 14 * cos(angle + 0.2)
+                        let y4 = 26 + 14 * sin(angle + 0.2)
+                        
+                        path.move(to: CGPoint(x: x1, y: y1))
+                        path.addLine(to: CGPoint(x: x2, y: y2))
+                        path.addLine(to: CGPoint(x: x3, y: y3))
+                        path.addLine(to: CGPoint(x: x4, y: y4))
+                        path.closeSubpath()
+                    }
+                    .fill(Color(red: 0.18, green: 0.18, blue: 0.20))
+                }
+            }
+            .clipShape(Circle())
+        }
+        .frame(width: 52, height: 52)
     }
 }

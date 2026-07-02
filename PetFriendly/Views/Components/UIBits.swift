@@ -106,21 +106,52 @@ struct StatBar: View {
     private let trackWidth: CGFloat = 62
 
     var body: some View {
-        HStack(spacing: 5) {
-            Text(icon).font(.system(size: 16))
+        HStack(spacing: 6) {
+            Text(icon)
+                .font(.system(size: 16))
+                .shadow(color: .black.opacity(0.1), radius: 1, y: 1)
+            
             Capsule()
-                .fill(.white.opacity(0.6))
+                .fill(.white.opacity(0.45))
                 .frame(width: trackWidth, height: 12)
-                .overlay(alignment: .leading) {
+                .overlay(
                     Capsule()
-                        .fill(value < 0.3 ? Color.red : color)
-                        .frame(width: max(7, trackWidth * value))
+                        .stroke(.black.opacity(0.08), lineWidth: 1)
+                )
+                .overlay(alignment: .leading) {
+                    let fillColor = value < 0.3 ? Color.red : color
+                    ZStack(alignment: .top) {
+                        Capsule()
+                            .fill(
+                                LinearGradient(
+                                    colors: [fillColor.opacity(0.85), fillColor],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                        
+                        // Brilho do preenchimento da barra (Gloss)
+                        Capsule()
+                            .fill(.white.opacity(0.28))
+                            .frame(height: 4)
+                            .padding(.horizontal, 2)
+                    }
+                    .frame(width: max(8, trackWidth * value))
                 }
-                .animation(.easeInOut(duration: 0.4), value: value)
+                .animation(.spring(response: 0.4, dampingFraction: 0.75), value: value)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 5)
-        .background(Capsule().fill(.white.opacity(0.35)))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            Capsule()
+                .fill(.white.opacity(0.40))
+                .background(Capsule().fill(.ultraThinMaterial))
+        )
+        .overlay(
+            Capsule()
+                .stroke(.white.opacity(0.55), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1.5)
     }
 }
 

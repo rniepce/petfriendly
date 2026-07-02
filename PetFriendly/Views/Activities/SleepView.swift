@@ -29,23 +29,56 @@ struct SleepView: View {
                     .font(.system(size: 56))
                     .position(x: geo.size.width * 0.88, y: geo.size.height * 0.16)
 
+                // Estrelas Vetoriais Cintilantes
                 ForEach(0..<10, id: \.self) { index in
-                    TwinklingStar(delay: Double(index) * 0.25)
+                    VectorStar(size: index.isMultiple(of: 3) ? 22 : 16, delay: Double(index) * 0.3)
                         .position(
                             x: geo.size.width * (0.08 + 0.09 * Double(index)),
                             y: geo.size.height * (index.isMultiple(of: 2) ? 0.12 : 0.24)
                         )
                 }
 
-                // caminha com travesseiro
-                RoundedRectangle(cornerRadius: 24)
-                    .fill(Color(red: 0.42, green: 0.30, blue: 0.55))
-                    .frame(width: geo.size.width * 0.44, height: 70)
-                    .position(x: petCenter.x, y: petCenter.y + 62)
-                Ellipse()
-                    .fill(Color(red: 0.95, green: 0.90, blue: 1.0).opacity(0.95))
-                    .frame(width: 96, height: 42)
-                    .position(x: petCenter.x - geo.size.width * 0.13, y: petCenter.y + 34)
+                // Caminha aconchegante detalhada
+                ZStack {
+                    // Estrutura de madeira externa da caminha
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(red: 0.58, green: 0.38, blue: 0.22), Color(red: 0.48, green: 0.28, blue: 0.15)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .frame(width: geo.size.width * 0.46, height: 80)
+                        .shadow(color: .black.opacity(0.2), radius: 5, y: 3)
+                        .position(x: petCenter.x, y: petCenter.y + 64)
+                    
+                    // Colchão estofado interno
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(red: 0.45, green: 0.30, blue: 0.58), Color(red: 0.32, green: 0.18, blue: 0.45)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .frame(width: geo.size.width * 0.42, height: 64)
+                        .position(x: petCenter.x, y: petCenter.y + 60)
+                    
+                    // Travesseiro super fofo
+                    ZStack {
+                        Ellipse()
+                            .fill(Color(red: 0.98, green: 0.95, blue: 0.92))
+                            .frame(width: 90, height: 38)
+                            .shadow(color: .black.opacity(0.12), radius: 3, y: 2)
+                        // Dobrinha/Linha do travesseiro
+                        Capsule()
+                            .fill(Color(red: 0.88, green: 0.85, blue: 0.80))
+                            .frame(width: 50, height: 3)
+                            .offset(y: 4)
+                    }
+                    .position(x: petCenter.x - geo.size.width * 0.12, y: petCenter.y + 44)
+                }
 
                 if let pet = vm.pet {
                     PetCharacterView(species: pet.species, pose: .sleep, size: 150)
@@ -97,15 +130,4 @@ struct SleepView: View {
     }
 }
 
-private struct TwinklingStar: View {
-    let delay: Double
-    @State private var twinkle = false
 
-    var body: some View {
-        Text("⭐")
-            .font(.system(size: 16))
-            .opacity(twinkle ? 1 : 0.25)
-            .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true).delay(delay), value: twinkle)
-            .onAppear { twinkle = true }
-    }
-}
