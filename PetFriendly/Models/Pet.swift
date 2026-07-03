@@ -130,6 +130,7 @@ enum Mood {
     case happy
     case ok
     case sad
+    case verySad
 }
 
 enum TimeOfDay: String, Codable, CaseIterable {
@@ -160,15 +161,21 @@ struct Pet: Codable {
     var coins: Int = 100
     var purchasedAccessories: [String] = []
     var equippedAccessory: String? = nil
+    
+    // Progressão e Decaimento
+    var level: Int = 1
+    var xp: Int = 0
+    var lastAccessDate: Date = Date()
 }
 
 extension Pet {
     var average: Double { (hunger + hygiene + fun + energy) / 4 }
 
     var mood: Mood {
-        if average > 0.6 { return .happy }
-        if average > 0.35 { return .ok }
-        return .sad
+        if average > 0.6 && hunger > 0.3 { return .happy }
+        if average > 0.35 && hunger > 0.15 { return .ok }
+        if average > 0.15 && hunger > 0.05 { return .sad }
+        return .verySad
     }
 
     /// Dica falada pelo pet quando algum medidor está baixo.

@@ -37,6 +37,12 @@ struct HomeView: View {
                 if let pet = vm.pet {
                     petArea(pet: pet)
                     hud(pet: pet)
+                    
+                    if pet.mood == .verySad {
+                        Color.blue.opacity(0.2)
+                            .ignoresSafeArea()
+                            .allowsHitTesting(false)
+                    }
                 }
 
                 ParticleField(system: particles)
@@ -50,6 +56,9 @@ struct HomeView: View {
             .onAppear {
                 if petPos == .zero {
                     petPos = CGPoint(x: geo.size.width * 0.5, y: geo.size.height * 0.56)
+                }
+                if let p = vm.pet {
+                    AudioManager.shared.isNight = (p.timeOfDay == .night)
                 }
             }
             .onReceive(behaviorTimer) { _ in
@@ -76,11 +85,11 @@ struct HomeView: View {
     private func petArea(pet: Pet) -> some View {
         ZStack {
             if let hint = pet.needHint {
-                SpeechBubble(text: hint)
+                SpeechBubble(text: pet.mood == .verySad ? "Estou muito triste... 😭" : hint)
                     .position(x: petPos.x, y: petPos.y - 118)
             }
 
-            PetCharacterView(species: pet.species, pose: pose, facing: facing, size: 170, accessory: pet.equippedAccessory)
+            PetCharacterView(species: pet.species, pose: pose, facing: facing, size: 170, accessory: pet.equippedAccessory, mood: pet.mood)
                 .offset(y: jumpOffset)
                 .position(petPos)
                 .onTapGesture { jump() }
@@ -175,15 +184,30 @@ struct HomeView: View {
 
                 Spacer()
 
-                HStack(spacing: 4) {
-                    Text("⭐").font(.system(size: 16))
-                    Text("\(pet.stars)")
-                        .font(.system(size: 16, weight: .heavy, design: .rounded))
-                        .foregroundStyle(Color(red: 0.5, green: 0.35, blue: 0.1))
+                HStack(spacing: 12) {
+                    // Nível e XP
+                    HStack(spacing: 4) {
+                        Text("Lv.\(pet.level)")
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .foregroundStyle(Color.indigo)
+                        
+                        ProgressView(value: Double(pet.xp), total: Double(pet.level * 100))
+                            .progressViewStyle(.linear)
+                            .tint(.indigo)
+                            .frame(width: 32)
+                    }
+                    
+                    // Estrelas
+                    HStack(spacing: 2) {
+                        Text("⭐").font(.system(size: 12))
+                        Text("\(pet.stars)")
+                            .font(.system(size: 14, weight: .heavy, design: .rounded))
+                            .foregroundStyle(Color(red: 0.5, green: 0.35, blue: 0.1))
+                    }
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(Capsule().fill(.white.opacity(0.75)))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Capsule().fill(.white.opacity(0.8)))
 
                 // Controles de clima e tempo
                 HStack(spacing: 8) {
@@ -193,6 +217,7 @@ struct HomeView: View {
                         AudioManager.shared.play(.pop)
                         var p = pet
                         p.timeOfDay = p.timeOfDay == .day ? .night : .day
+                        AudioManager.shared.isNight = (p.timeOfDay == .night)
                         vm.pet = p
                         vm.save()
                     } label: {

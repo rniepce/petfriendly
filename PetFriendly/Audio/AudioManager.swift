@@ -26,6 +26,14 @@ final class AudioManager: ObservableObject {
             applyMusic()
         }
     }
+    
+    @Published var isNight: Bool = false {
+        didSet {
+            if started && engine.isRunning && musicOn {
+                applyMusic()
+            }
+        }
+    }
     @Published var soundOn: Bool {
         didSet {
             UserDefaults.standard.set(soundOn, forKey: "petfriendly.soundOn")
@@ -37,6 +45,7 @@ final class AudioManager: ObservableObject {
     private var sfxNodes: [AVAudioPlayerNode] = []
     private var sfxIndex = 0
     private var musicBuffer: AVAudioPCMBuffer?
+    private var nightMusicBuffer: AVAudioPCMBuffer?
     private var sfxBuffers: [SFX: AVAudioPCMBuffer] = [:]
     private var started = false
     private let sampleRate: Double = 44100
@@ -81,6 +90,7 @@ final class AudioManager: ObservableObject {
         musicNode.volume = 0.55
 
         musicBuffer = Self.renderMusicLoop(sampleRate: sampleRate, format: format)
+        nightMusicBuffer = Self.renderNightMusicLoop(sampleRate: sampleRate, format: format)
         for sfx in SFX.allCases {
             sfxBuffers[sfx] = Self.renderSFX(sfx, sampleRate: sampleRate, format: format)
         }
@@ -91,10 +101,11 @@ final class AudioManager: ObservableObject {
     }
 
     private func applyMusic() {
-        guard started, engine.isRunning, let buffer = musicBuffer else { return }
+        let buffer = isNight ? nightMusicBuffer : musicBuffer
+        guard started, engine.isRunning, let buf = buffer else { return }
         musicNode.stop()
         if musicOn {
-            musicNode.scheduleBuffer(buffer, at: nil, options: .loops)
+            musicNode.scheduleBuffer(buf, at: nil, options: .loops)
             musicNode.play()
         }
     }
@@ -182,6 +193,55 @@ final class AudioManager: ObservableObject {
 
         for n in melody { addNote(midi: n.0, startBeat: n.1, durBeats: n.2, gain: 0.16, bell: true) }
         for n in bass { addNote(midi: n.0, startBeat: n.1, durBeats: n.2, gain: 0.09, bell: false) }
+
+        for i in 0..<frameCount {
+            data[i] = max(-0.95, min(0.95, data[i]))
+        }
+        return buffer
+    }
+    
+    private static func renderNightMusicLoop(sampleRate: Double, format: AVAudioFormat) -> AVAudioPCMBuffer? {
+        let bpm = 60.0 // Bem mais lento
+        let beat = 60.0 / bpm
+        let loopBeats = 16.0
+        let frameCount = Int(loopBeats * beat * sampleRate)
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(frameCount)) else { return nil }
+        buffer.frameLength = AVAudioFrameCount(frameCount)
+        guard let data = buffer.floatChannelData?[0] else { return nil }
+        for i in 0..<frameCount { data[i] = 0 }
+
+        // Melodia de ninar simples, suave (F maior/ré menor)
+        let melody: [(Int, Double, Double)] = [
+            (65, 0, 2), (69, 2, 2), (65, 4, 2), (72, 6, 2),
+            (69, 8, 2), (65, 10, 1), (67, 11, 1), (65, 12, 4)
+        ]
+        
+        let bass: [(Int, Double, Double)] = [
+            (41, 0, 4), (45, 4, 4), (41, 8, 4), (41, 12, 4)
+        ]
+
+        func addNote(midi: Int, startBeat: Double, durBeats: Double, gain: Float, bell: Bool) {
+            let freq = 440.0 * pow(2.0, (Double(midi) - 69.0) / 12.0)
+            let startFrame = Int(startBeat * beat * sampleRate)
+            let tail = 2.0 // Cauda super longa para ecos relaxantes
+            let total = Int((durBeats * beat + tail) * sampleRate)
+            let decay = 1.2
+            for j in 0..<total {
+                let idx = startFrame + j
+                if idx >= frameCount { break }
+                let time = Double(j) / sampleRate
+                let attack = min(1.0, time / 0.05)
+                let env = attack * exp(-time / decay)
+                var s = sin(2 * Double.pi * freq * time)
+                if bell {
+                    s += 0.2 * sin(4 * Double.pi * freq * time) * exp(-time / 0.5)
+                }
+                data[idx] += Float(s * env) * gain
+            }
+        }
+
+        for n in melody { addNote(midi: n.0, startBeat: n.1, durBeats: n.2, gain: 0.12, bell: true) }
+        for n in bass { addNote(midi: n.0, startBeat: n.1, durBeats: n.2, gain: 0.08, bell: false) }
 
         for i in 0..<frameCount {
             data[i] = max(-0.95, min(0.95, data[i]))

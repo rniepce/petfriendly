@@ -59,14 +59,33 @@ final class GameViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Experiência e Nível
+
+    func addXP(_ amount: Int) {
+        guard var p = pet else { return }
+        p.xp += amount
+        let requiredXP = p.level * 100
+        if p.xp >= requiredXP {
+            p.xp -= requiredXP
+            p.level += 1
+            AudioManager.shared.play(.sparkle)
+            Haptics.success()
+        }
+        pet = p
+    }
+
     // MARK: - Cuidados
 
     func feed() {
         boost(\.hunger, by: 0.22)
+        addXP(15)
+        save()
     }
 
     func play() {
         boost(\.fun, by: 0.2)
+        addXP(15)
+        save()
     }
 
     func rest(_ amount: Double) {
@@ -78,6 +97,7 @@ final class GameViewModel: ObservableObject {
         if p.hygiene < 0.99 { p.stars += 1 }
         p.hygiene = 1
         pet = p
+        addXP(15)
         save()
     }
 
@@ -110,14 +130,16 @@ final class GameViewModel: ObservableObject {
             p.stars += 1
         }
         pet = p
-        save()
     }
 
     // MARK: - Persistência
 
     func save() {
-        if let pet, let data = try? JSONEncoder().encode(pet) {
-            UserDefaults.standard.set(data, forKey: Self.saveKey)
+        if var petToSave = pet {
+            petToSave.lastAccessDate = Date()
+            if let data = try? JSONEncoder().encode(petToSave) {
+                UserDefaults.standard.set(data, forKey: Self.saveKey)
+            }
         } else {
             UserDefaults.standard.removeObject(forKey: Self.saveKey)
         }
@@ -126,6 +148,21 @@ final class GameViewModel: ObservableObject {
     private func load() {
         guard let data = UserDefaults.standard.data(forKey: Self.saveKey),
               let saved = try? JSONDecoder().decode(Pet.self, from: data) else { return }
-        pet = saved
+              
+        var loadedPet = saved
+        let now = Date()
+        let elapsedHours = now.timeIntervalSince(loadedPet.lastAccessDate) / 3600.0
+        
+        if elapsedHours > 0 {
+            // Decay 5% (0.05) per hour
+            let decay = elapsedHours * 0.05
+            loadedPet.hunger = max(0, loadedPet.hunger - decay)
+            loadedPet.hygiene = max(0, loadedPet.hygiene - decay)
+            loadedPet.fun = max(0, loadedPet.fun - decay)
+            loadedPet.energy = max(0, loadedPet.energy - decay)
+            loadedPet.lastAccessDate = now
+        }
+        
+        pet = loadedPet
     }
 }

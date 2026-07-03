@@ -81,7 +81,7 @@ struct SleepView: View {
                 }
 
                 if let pet = vm.pet {
-                    PetCharacterView(species: pet.species, pose: .sleep, size: 150)
+                    PetCharacterView(species: pet.species, pose: .sleep, size: 150, mood: pet.mood)
                         .position(petCenter)
                 }
 

@@ -36,7 +36,10 @@ struct PlayView: View {
     @State private var isGrounded = true
     @State private var isGameOver = false
     @State private var earnedCoinsThisSession = 0
-    @State private var lastCycle = 0
+    @State private var obstacleX: CGFloat = 1000
+    
+    // Timer para o pulo do pet
+    let gameTimer = Timer.publish(every: 1/60, on: .main, in: .common).autoconnect()
 
     var body: some View {
         GeometryReader { geo in
@@ -202,6 +205,9 @@ struct PlayView: View {
                     petPos = homeSpot
                     ballPos = CGPoint(x: geo.size.width * 0.65, y: geo.size.height * 0.62)
                     pose = .sit
+                    phase = .ready
+                    facing = 1
+                    catches = 0
                 } label: {
                     VStack(spacing: 12) {
                         Text("⚽")
@@ -228,6 +234,9 @@ struct PlayView: View {
                     jumpScore = 0
                     earnedCoinsThisSession = 0
                     isGameOver = false
+                    petJumpY = 0
+                    isGrounded = true
+                    obstacleX = geo.size.width + 50
                 } label: {
                     VStack(spacing: 12) {
                         Text("🏃")
@@ -259,7 +268,7 @@ struct PlayView: View {
     private func catchBallView(geo: GeometryProxy, homeSpot: CGPoint) -> some View {
         ZStack {
             if ready, let pet = vm.pet {
-                PetCharacterView(species: pet.species, pose: pose, facing: facing, size: 140, accessory: pet.equippedAccessory)
+                PetCharacterView(species: pet.species, pose: pose, facing: facing, size: 140, accessory: pet.equippedAccessory, mood: pet.mood)
                     .position(petPos)
 
                 VectorBall()
@@ -337,92 +346,108 @@ struct PlayView: View {
     @ViewBuilder
     private func jumpGameView(geo: GeometryProxy, homeSpot: CGPoint) -> some View {
         ZStack {
-            TimelineView(.animation) { context in
-                let t = context.date.timeIntervalSinceReferenceDate
-                let speedMultiplier = 240.0 + Double(jumpScore) * 12.0
-                let span = Double(geo.size.width) + 120
-                let rawObsX = CGFloat((t * speedMultiplier).truncatingRemainder(dividingBy: span))
-                let obstacleX = geo.size.width - rawObsX
-                let cycle = Int((t * speedMultiplier) / span)
-                
-                let petX = geo.size.width * 0.25
-                let obstacleGroundY = geo.size.height * 0.68
-                
-                let _ = updateGameLogic(cycle: cycle, obstacleX: obstacleX, petX: petX, obstacleGroundY: obstacleGroundY)
-                
-                ZStack {
-                    if let pet = vm.pet {
-                        PetCharacterView(species: pet.species, pose: isGameOver ? .sleep : pose, size: 140, accessory: pet.equippedAccessory)
-                            .position(x: petX, y: homeSpot.y + petJumpY)
-                    }
+            let petX = geo.size.width * 0.25
+            let obstacleGroundY = geo.size.height * 0.68
+            
+            ZStack {
+                if let pet = vm.pet {
+                    PetCharacterView(species: pet.species, pose: isGameOver ? .sleep : pose, size: 140, accessory: pet.equippedAccessory, mood: pet.mood)
+                        .rotationEffect(.degrees(isGameOver ? -90 : 0))
+                        .position(x: petX, y: homeSpot.y + petJumpY)
+                }
 
-                    if !isGameOver {
-                        ZStack {
-                            Ellipse()
-                                .fill(.black.opacity(0.12))
-                                .frame(width: 48, height: 6)
-                                .offset(y: 16)
-                            
-                            Capsule()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [Color(red: 0.60, green: 0.38, blue: 0.20), Color(red: 0.45, green: 0.25, blue: 0.12)],
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    )
+                if !isGameOver {
+                    ZStack {
+                        Ellipse()
+                            .fill(.black.opacity(0.12))
+                            .frame(width: 48, height: 6)
+                            .offset(y: 16)
+                        
+                        Capsule()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color(red: 0.60, green: 0.38, blue: 0.20), Color(red: 0.45, green: 0.25, blue: 0.12)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
                                 )
-                                .frame(width: 48, height: 30)
-                            
-                            Rectangle()
-                                .fill(Color(red: 0.85, green: 0.60, blue: 0.45).opacity(0.6))
-                                .frame(width: 48, height: 3.5)
-                                .offset(y: -4)
-                        }
-                        .position(x: obstacleX, y: obstacleGroundY)
-                        .onAppear {
-                            if lastCycle == 0 {
-                                lastCycle = cycle
-                            }
-                        }
+                            )
+                            .frame(width: 48, height: 30)
+                        
+                        Rectangle()
+                            .fill(Color(red: 0.85, green: 0.60, blue: 0.45).opacity(0.6))
+                            .frame(width: 48, height: 3.5)
+                            .offset(y: -4)
                     }
-                    
-                    if isGameOver {
-                        VStack(spacing: 12) {
-                            Text("Fim de Jogo! 💥")
-                                .font(.system(size: 24, weight: .black, design: .rounded))
-                                .foregroundStyle(.red)
-                            
-                            Text("Você ganhou 🪙 \(earnedCoinsThisSession) moedas!")
-                                .font(.system(size: 16, weight: .bold, design: .rounded))
-                                .foregroundStyle(Color(red: 0.3, green: 0.2, blue: 0.1))
-                            
-                            Button {
-                                Haptics.tap()
-                                AudioManager.shared.play(.pop)
-                                jumpScore = 0
-                                earnedCoinsThisSession = 0
-                                isGameOver = false
-                                pose = .run
-                            } label: {
-                                Text("Jogar de novo 🔁")
-                                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 8)
-                                    .background(Capsule().fill(.orange))
-                            }
-                            .buttonStyle(SquishyButtonStyle())
+                    .position(x: obstacleX, y: obstacleGroundY)
+                }
+                
+                if isGameOver {
+                    VStack(spacing: 12) {
+                        Text("Fim de Jogo! 💥")
+                            .font(.system(size: 24, weight: .black, design: .rounded))
+                            .foregroundStyle(.red)
+                        
+                        Text("Você ganhou 🪙 \(earnedCoinsThisSession) moedas!")
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .foregroundStyle(Color(red: 0.3, green: 0.2, blue: 0.1))
+                        
+                        Button {
+                            Haptics.tap()
+                            AudioManager.shared.play(.pop)
+                            jumpScore = 0
+                            earnedCoinsThisSession = 0
+                            isGameOver = false
+                            pose = .run
+                            obstacleX = geo.size.width + 50
+                            petJumpY = 0
+                            isGrounded = true
+                        } label: {
+                            Text("Jogar de novo 🔁")
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(Capsule().fill(.orange))
                         }
-                        .padding(20)
-                        .background(RoundedRectangle(cornerRadius: 22).fill(.white.opacity(0.92)))
-                        .shadow(radius: 6)
-                        .position(x: geo.size.width / 2, y: geo.size.height / 2)
+                        .buttonStyle(SquishyButtonStyle())
                     }
+                    .padding(20)
+                    .background(RoundedRectangle(cornerRadius: 22).fill(.white.opacity(0.92)))
+                    .shadow(radius: 6)
+                    .position(x: geo.size.width / 2, y: geo.size.height / 2)
                 }
             }
             .contentShape(Rectangle())
             .onTapGesture {
                 triggerJump()
+            }
+            .onReceive(gameTimer) { _ in
+                guard !isGameOver else { return }
+                
+                let speed = 280.0 + Double(jumpScore) * 15.0
+                obstacleX -= CGFloat(speed / 60.0)
+                
+                if obstacleX < -50 {
+                    obstacleX = geo.size.width + 50
+                    jumpScore += 1
+                    earnedCoinsThisSession += 2
+                    vm.play()
+                    AudioManager.shared.play(.pop)
+                }
+                
+                let dist = abs(obstacleX - petX)
+                if dist < 40 && petJumpY > -40 {
+                    isGameOver = true
+                    Haptics.error()
+                    AudioManager.shared.play(.chime)
+                    particles.burst(["💥", "💨", "🍂"], at: CGPoint(x: petX, y: obstacleGroundY), count: 6)
+                    
+                    if earnedCoinsThisSession > 0, var p = vm.pet {
+                        p.coins += earnedCoinsThisSession
+                        vm.pet = p
+                        vm.save()
+                    }
+                }
             }
             
             // HUD Overlay para Pulo do Pet
@@ -471,40 +496,6 @@ struct PlayView: View {
                 }
                 .padding(.leading, 16)
                 .padding(.bottom, 12)
-            }
-        }
-    }
-
-    private func updateGameLogic(cycle: Int, obstacleX: CGFloat, petX: CGFloat, obstacleGroundY: CGFloat) {
-        if !isGameOver {
-            let dist = abs(obstacleX - petX)
-            if dist < 45 && petJumpY > -45 {
-                DispatchQueue.main.async {
-                    if !self.isGameOver {
-                        self.isGameOver = true
-                        Haptics.error()
-                        AudioManager.shared.play(.chime)
-                        self.particles.burst(["💥", "💨", "🍂"], at: CGPoint(x: petX, y: obstacleGroundY), count: 6)
-                        
-                        if self.earnedCoinsThisSession > 0, var p = self.vm.pet {
-                            p.coins += self.earnedCoinsThisSession
-                            self.vm.pet = p
-                            self.vm.save()
-                        }
-                    }
-                }
-            }
-            
-            if cycle != lastCycle {
-                DispatchQueue.main.async {
-                    if !self.isGameOver {
-                        self.lastCycle = cycle
-                        self.jumpScore += 1
-                        self.earnedCoinsThisSession += 2
-                        self.vm.play()
-                        AudioManager.shared.play(.pop)
-                    }
-                }
             }
         }
     }

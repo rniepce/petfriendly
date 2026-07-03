@@ -105,6 +105,7 @@ struct PetCharacterView: View {
     var facing: CGFloat = 1   // 1 = olhando para a direita, -1 = esquerda
     var size: CGFloat = 150
     var accessory: String? = nil
+    var mood: Mood = .happy
 
     var body: some View {
         TimelineView(.animation) { context in
@@ -113,9 +114,9 @@ struct PetCharacterView: View {
 
             Group {
                 if species == .parrot {
-                    BirdFigure(motion: m, size: size, accessory: accessory)
+                    BirdFigure(motion: m, size: size, accessory: accessory, mood: mood)
                 } else {
-                    QuadrupedFigure(species: species, motion: m, size: size, accessory: accessory)
+                    QuadrupedFigure(species: species, motion: m, size: size, accessory: accessory, mood: mood)
                 }
             }
             .rotationEffect(.degrees(Double(m.lean)))
@@ -158,6 +159,7 @@ private struct QuadrupedFigure: View {
     let motion: PetMotion
     let size: CGFloat
     let accessory: String?
+    let mood: Mood
 
     private var m: PetMotion { motion }
     private var S: CGFloat { size }
@@ -584,13 +586,24 @@ private struct QuadrupedFigure: View {
 
     private func eye(x: CGFloat) -> some View {
         ZStack {
-            Ellipse()
-                .fill(Color(red: 0.25, green: 0.18, blue: 0.16))
-                .frame(width: S * 0.065, height: S * 0.075)
-            Circle()
-                .fill(.white)
-                .frame(width: S * 0.022)
-                .offset(x: -S * 0.012, y: -S * 0.016)
+            if mood == .verySad {
+                Capsule()
+                    .fill(Color(red: 0.25, green: 0.18, blue: 0.16))
+                    .frame(width: S * 0.065, height: S * 0.015)
+                    .rotationEffect(.degrees(x > 0.6 ? 15 : -15))
+                Capsule()
+                    .fill(Color(red: 0.25, green: 0.18, blue: 0.16))
+                    .frame(width: S * 0.015, height: S * 0.03)
+                    .offset(x: S * 0.015, y: S * 0.015)
+            } else {
+                Ellipse()
+                    .fill(Color(red: 0.25, green: 0.18, blue: 0.16))
+                    .frame(width: S * 0.065, height: S * 0.075)
+                Circle()
+                    .fill(.white)
+                    .frame(width: S * 0.022)
+                    .offset(x: -S * 0.012, y: -S * 0.016)
+            }
         }
         .scaleEffect(y: max(0.12, m.eyeOpen))
         .position(x: S * x, y: S * 0.345)
@@ -598,7 +611,16 @@ private struct QuadrupedFigure: View {
 
     @ViewBuilder
     private var mouth: some View {
-        if m.mouthOpen > 0.15 {
+        if mood == .verySad {
+            SmileShape()
+                .stroke(
+                    Color(red: 0.35, green: 0.25, blue: 0.22),
+                    style: StrokeStyle(lineWidth: S * 0.012, lineCap: .round)
+                )
+                .frame(width: S * 0.06, height: S * 0.028)
+                .rotationEffect(.degrees(180))
+                .position(x: S * 0.675, y: S * 0.485)
+        } else if m.mouthOpen > 0.15 {
             ZStack {
                 Ellipse()
                     .fill(Color(red: 0.55, green: 0.25, blue: 0.25))
@@ -728,6 +750,7 @@ private struct BirdFigure: View {
     let motion: PetMotion
     let size: CGFloat
     let accessory: String?
+    let mood: Mood
 
     private var m: PetMotion { motion }
     private var S: CGFloat { size }
@@ -833,13 +856,24 @@ private struct BirdFigure: View {
 
             // olho
             ZStack {
-                Ellipse()
-                    .fill(Color(red: 0.2, green: 0.15, blue: 0.15))
-                    .frame(width: S * 0.06, height: S * 0.07)
-                Circle()
-                    .fill(.white)
-                    .frame(width: S * 0.02)
-                    .offset(x: -S * 0.01, y: -S * 0.015)
+                if mood == .verySad {
+                    Capsule()
+                        .fill(Color(red: 0.25, green: 0.18, blue: 0.16))
+                        .frame(width: S * 0.06, height: S * 0.015)
+                        .rotationEffect(.degrees(15))
+                    Capsule()
+                        .fill(Color(red: 0.25, green: 0.18, blue: 0.16))
+                        .frame(width: S * 0.015, height: S * 0.03)
+                        .offset(x: S * 0.015, y: S * 0.015)
+                } else {
+                    Ellipse()
+                        .fill(Color(red: 0.2, green: 0.15, blue: 0.15))
+                        .frame(width: S * 0.06, height: S * 0.07)
+                    Circle()
+                        .fill(.white)
+                        .frame(width: S * 0.02)
+                        .offset(x: -S * 0.01, y: -S * 0.015)
+                }
             }
             .scaleEffect(y: max(0.12, m.eyeOpen))
             .position(x: S * 0.655, y: S * 0.27)

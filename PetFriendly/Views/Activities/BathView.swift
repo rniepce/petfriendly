@@ -144,7 +144,7 @@ struct BathView: View {
                     .position(x: petCenter.x + geo.size.width * 0.17, y: geo.size.height * 0.70)
 
                 if let pet = vm.pet {
-                    PetCharacterView(species: pet.species, pose: petPose, size: 150)
+                    PetCharacterView(species: pet.species, pose: petPose, size: 150, mood: pet.mood)
                         .rotationEffect(.degrees(shakeAngle))
                         .position(petCenter)
                 }

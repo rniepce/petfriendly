@@ -59,7 +59,7 @@ struct FeedingView: View {
                 bowl(at: bowlPos)
 
                 if ready, let pet = vm.pet {
-                    PetCharacterView(species: pet.species, pose: pose, facing: facing, size: 150)
+                    PetCharacterView(species: pet.species, pose: pose, facing: facing, size: 150, mood: pet.mood)
                         .position(petPos)
                 }
 

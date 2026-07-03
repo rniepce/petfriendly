@@ -46,7 +46,8 @@ struct WardrobeView: View {
                                 species: pet.species,
                                 pose: .idle,
                                 size: 190,
-                                accessory: previewAccessory
+                                accessory: previewAccessory ?? pet.equippedAccessory,
+                                mood: vm.pet?.mood ?? .happy
                             )
                             .offset(y: -10)
                         }
