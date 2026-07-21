@@ -74,6 +74,31 @@ final class GameViewModel: ObservableObject {
         pet = p
     }
 
+    // MARK: - Ambiente (dia/noite e clima)
+
+    /// Muda a hora do dia e mantém a música noturna em sincronia.
+    func setTimeOfDay(_ time: TimeOfDay) {
+        guard var p = pet, p.timeOfDay != time else { return }
+        p.timeOfDay = time
+        pet = p
+        AudioManager.shared.isNight = (time == .night)
+        save()
+    }
+
+    func setWeather(_ weather: Weather) {
+        guard var p = pet else { return }
+        p.weather = weather
+        pet = p
+        save()
+    }
+
+    func addCoins(_ amount: Int) {
+        guard var p = pet else { return }
+        p.coins += amount
+        pet = p
+        save()
+    }
+
     // MARK: - Cuidados
 
     func feed() {
@@ -94,7 +119,10 @@ final class GameViewModel: ObservableObject {
 
     func bathe() {
         guard var p = pet else { return }
-        if p.hygiene < 0.99 { p.stars += 1 }
+        if p.hygiene < 0.99 {
+            p.stars += 1
+            p.coins += 5
+        }
         p.hygiene = 1
         pet = p
         addXP(15)
@@ -128,6 +156,7 @@ final class GameViewModel: ObservableObject {
         p[keyPath: keyPath] = new
         if old < 0.99 && new >= 0.99 {
             p.stars += 1
+            p.coins += 5
         }
         pet = p
     }

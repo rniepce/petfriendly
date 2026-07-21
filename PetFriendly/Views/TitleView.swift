@@ -3,6 +3,7 @@ import SwiftUI
 struct TitleView: View {
     @EnvironmentObject var vm: GameViewModel
     @ObservedObject private var audio = AudioManager.shared
+    @State private var showReleaseConfirm = false
 
     var body: some View {
         ZStack {
@@ -94,7 +95,7 @@ struct TitleView: View {
                     Button {
                         Haptics.tap()
                         AudioManager.shared.play(.pop)
-                        vm.releasePetAndShop()
+                        showReleaseConfirm = true
                     } label: {
                         Text("Adotar outro pet 🏪")
                             .font(.system(size: 16, weight: .bold, design: .rounded))
@@ -131,6 +132,14 @@ struct TitleView: View {
                 .padding(.top, 10)
                 Spacer()
             }
+        }
+        .alert("Quer escolher outro pet?", isPresented: $showReleaseConfirm) {
+            Button("Sim, ir ao petshop 🏪", role: .destructive) {
+                vm.releasePetAndShop()
+            }
+            Button("Não, ficar com meu pet 💖", role: .cancel) {}
+        } message: {
+            Text("Seu pet atual vai voltar para o petshop.")
         }
     }
 }

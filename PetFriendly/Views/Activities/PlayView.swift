@@ -37,6 +37,7 @@ struct PlayView: View {
     @State private var isGameOver = false
     @State private var earnedCoinsThisSession = 0
     @State private var obstacleX: CGFloat = 1000
+    @State private var hasJumpedOnce = false
     
     // Timer para o pulo do pet
     let gameTimer = Timer.publish(every: 1/60, on: .main, in: .common).autoconnect()
@@ -236,6 +237,7 @@ struct PlayView: View {
                     isGameOver = false
                     petJumpY = 0
                     isGrounded = true
+                    hasJumpedOnce = false
                     obstacleX = geo.size.width + 50
                 } label: {
                     VStack(spacing: 12) {
@@ -336,9 +338,9 @@ struct PlayView: View {
                 HStack {
                     StatBar(icon: "⚽", value: vm.pet?.fun ?? 0, color: .green)
                     Spacer()
-                    .padding(.leading, 16)
-                    .padding(.bottom, 12)
                 }
+                .padding(.leading, 16)
+                .padding(.bottom, 12)
             }
         }
     }
@@ -380,17 +382,29 @@ struct PlayView: View {
                     }
                     .position(x: obstacleX, y: obstacleGroundY)
                 }
-                
+
+                if !isGameOver && !hasJumpedOnce {
+                    Text("Toque na tela para pular! 👆")
+                        .font(.system(size: 17, weight: .bold, design: .rounded))
+                        .foregroundStyle(Color(red: 0.3, green: 0.2, blue: 0.15))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Capsule().fill(.white.opacity(0.85)))
+                        .position(x: geo.size.width * 0.6, y: homeSpot.y - 90)
+                        .transition(.opacity)
+                        .allowsHitTesting(false)
+                }
+
                 if isGameOver {
                     VStack(spacing: 12) {
-                        Text("Fim de Jogo! 💥")
+                        Text("Opa! Tropeçou! 🐾")
                             .font(.system(size: 24, weight: .black, design: .rounded))
-                            .foregroundStyle(.red)
-                        
+                            .foregroundStyle(Color(red: 0.85, green: 0.45, blue: 0.15))
+
                         Text("Você ganhou 🪙 \(earnedCoinsThisSession) moedas!")
                             .font(.system(size: 16, weight: .bold, design: .rounded))
                             .foregroundStyle(Color(red: 0.3, green: 0.2, blue: 0.1))
-                        
+
                         Button {
                             Haptics.tap()
                             AudioManager.shared.play(.pop)
@@ -401,6 +415,7 @@ struct PlayView: View {
                             obstacleX = geo.size.width + 50
                             petJumpY = 0
                             isGrounded = true
+                            hasJumpedOnce = false
                         } label: {
                             Text("Jogar de novo 🔁")
                                 .font(.system(size: 15, weight: .bold, design: .rounded))
@@ -423,10 +438,11 @@ struct PlayView: View {
             }
             .onReceive(gameTimer) { _ in
                 guard !isGameOver else { return }
-                
-                let speed = 280.0 + Double(jumpScore) * 15.0
+
+                // Fica mais rápido aos poucos, mas com um teto — sem virar impossível para uma criança pequena.
+                let speed = 240.0 + Double(min(jumpScore, 14)) * 10.0
                 obstacleX -= CGFloat(speed / 60.0)
-                
+
                 if obstacleX < -50 {
                     obstacleX = geo.size.width + 50
                     jumpScore += 1
@@ -434,22 +450,20 @@ struct PlayView: View {
                     vm.play()
                     AudioManager.shared.play(.pop)
                 }
-                
+
                 let dist = abs(obstacleX - petX)
                 if dist < 40 && petJumpY > -40 {
                     isGameOver = true
                     Haptics.error()
-                    AudioManager.shared.play(.chime)
-                    particles.burst(["💥", "💨", "🍂"], at: CGPoint(x: petX, y: obstacleGroundY), count: 6)
-                    
-                    if earnedCoinsThisSession > 0, var p = vm.pet {
-                        p.coins += earnedCoinsThisSession
-                        vm.pet = p
-                        vm.save()
+                    AudioManager.shared.play(.oops)
+                    particles.burst(["💫", "💨", "🍂"], at: CGPoint(x: petX, y: obstacleGroundY), count: 6)
+
+                    if earnedCoinsThisSession > 0 {
+                        vm.addCoins(earnedCoinsThisSession)
                     }
                 }
             }
-            
+
             // HUD Overlay para Pulo do Pet
             VStack {
                 HStack {
@@ -520,6 +534,7 @@ struct PlayView: View {
     private func triggerJump() {
         guard isGrounded && !isGameOver else { return }
         isGrounded = false
+        hasJumpedOnce = true
         AudioManager.shared.play(.boing)
         pose = .happy
         withAnimation(.easeOut(duration: 0.32)) {

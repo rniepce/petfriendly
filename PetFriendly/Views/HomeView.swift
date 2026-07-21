@@ -37,12 +37,6 @@ struct HomeView: View {
                 if let pet = vm.pet {
                     petArea(pet: pet)
                     hud(pet: pet)
-                    
-                    if pet.mood == .verySad {
-                        Color.blue.opacity(0.2)
-                            .ignoresSafeArea()
-                            .allowsHitTesting(false)
-                    }
                 }
 
                 ParticleField(system: particles)
@@ -209,43 +203,18 @@ struct HomeView: View {
                 .padding(.vertical, 6)
                 .background(Capsule().fill(.white.opacity(0.8)))
 
-                // Controles de clima e tempo
-                HStack(spacing: 8) {
-                    // Botão Dia/Noite
-                    Button {
-                        Haptics.tap()
-                        AudioManager.shared.play(.pop)
-                        var p = pet
-                        p.timeOfDay = p.timeOfDay == .day ? .night : .day
-                        AudioManager.shared.isNight = (p.timeOfDay == .night)
-                        vm.pet = p
-                        vm.save()
-                    } label: {
-                        Text(pet.timeOfDay == .day ? "☀️" : "🌙")
-                            .font(.system(size: 16))
-                            .frame(width: 32, height: 32)
-                            .background(Circle().fill(.white.opacity(0.85)))
-                    }
-                    .buttonStyle(SquishyButtonStyle())
-
-                    // Botão Clima
-                    Button {
-                        Haptics.tap()
-                        AudioManager.shared.play(.pop)
-                        var p = pet
-                        p.weather = p.weather == .sunny ? .rainy : .sunny
-                        vm.pet = p
-                        vm.save()
-                    } label: {
-                        Text(pet.weather == .sunny ? "🌈" : "🌧️")
-                            .font(.system(size: 16))
-                            .frame(width: 32, height: 32)
-                            .background(Circle().fill(.white.opacity(0.85)))
-                    }
-                    .buttonStyle(SquishyButtonStyle())
+                // Botão de clima (a hora do dia muda sozinha quando o pet dorme)
+                Button {
+                    Haptics.tap()
+                    AudioManager.shared.play(.pop)
+                    vm.setWeather(pet.weather == .sunny ? .rainy : .sunny)
+                } label: {
+                    Text(pet.weather == .sunny ? "🌈" : "🌧️")
+                        .font(.system(size: 18))
+                        .padding(7)
+                        .background(Circle().fill(.white.opacity(0.75)))
                 }
-                .padding(4)
-                .background(Capsule().fill(.white.opacity(0.45)))
+                .buttonStyle(SquishyButtonStyle())
 
                 Button {
                     Haptics.tap()

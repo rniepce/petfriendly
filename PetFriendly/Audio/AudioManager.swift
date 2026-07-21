@@ -13,6 +13,7 @@ enum SFX: CaseIterable {
     case squeak   // guincho (hamster)
     case chirp    // piar (papagaio)
     case sparkle  // brilho mágico (unicórnio)
+    case oops     // tropeço gentil (fim de mini-jogo, sem soar como recompensa)
 }
 
 /// Gera e toca a musiquinha de fundo (estilo caixinha de música) e os efeitos,
@@ -264,6 +265,7 @@ final class AudioManager: ObservableObject {
         case .squeak: dur = 0.08
         case .chirp: dur = 0.12
         case .sparkle: dur = 0.40
+        case .oops: dur = 0.24
         }
         let frameCount = Int(dur * sampleRate)
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(frameCount)) else { return nil }
@@ -325,6 +327,10 @@ final class AudioManager: ObservableObject {
                     let third = time - 0.16
                     s += sin(2 * Double.pi * 1568.0 * third) * exp(-third / 0.2) * 0.5
                 }
+            case .oops:
+                let f = 260.0 - 90.0 * progress
+                s = sin(2 * Double.pi * f * time) * exp(-time / 0.16)
+                s += 0.25 * sin(2 * Double.pi * f * 0.5 * time) * exp(-time / 0.18)
             }
             data[i] = Float(max(-0.9, min(0.9, s * 0.8)))
         }

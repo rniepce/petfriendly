@@ -113,6 +113,12 @@ struct SleepView: View {
                     .padding(.bottom, 16)
                 }
             }
+            .onAppear {
+                vm.setTimeOfDay(.night)
+            }
+            .onDisappear {
+                vm.setTimeOfDay(.day)
+            }
             .onReceive(timer) { _ in
                 guard !energyFull else { return }
                 vm.rest(0.05)
